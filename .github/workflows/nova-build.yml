@@ -1,0 +1,79 @@
+name: Build Nova Root
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [rebrand]
+    paths:
+      - "manager/**"
+      - ".github/workflows/nova-build.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: ./manager
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Get ksud binaries from the official v3.4.2 release
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/official.apk" \
+            https://github.com/KernelSU-Next/KernelSU-Next/releases/download/v3.4.2/KernelSU_Next_v3.4.2_33355-release.apk
+          for abi in arm64-v8a x86_64 riscv64; do
+            mkdir -p app/src/main/jniLibs/$abi
+            unzip -j -o "$RUNNER_TEMP/official.apk" "lib/$abi/libksud.so" -d app/src/main/jniLibs/$abi
+          done
+          ls -l app/src/main/jniLibs/*/
+
+      - name: Write signing key
+        env:
+          NOVA_KEYSTORE: ${{ secrets.NOVA_KEYSTORE }}
+          NOVA_KEYSTORE_PASSWORD: ${{ secrets.NOVA_KEYSTORE_PASSWORD }}
+          NOVA_KEY_ALIAS: ${{ secrets.NOVA_KEY_ALIAS }}
+          NOVA_KEY_PASSWORD: ${{ secrets.NOVA_KEY_PASSWORD }}
+        run: |
+          test -n "$NOVA_KEYSTORE"
+          echo "$NOVA_KEYSTORE" | base64 -d > key.jks
+          {
+            echo "KEYSTORE_FILE=key.jks"
+            echo "KEYSTORE_PASSWORD=$NOVA_KEYSTORE_PASSWORD"
+            echo "KEY_ALIAS=$NOVA_KEY_ALIAS"
+            echo "KEY_PASSWORD=$NOVA_KEY_PASSWORD"
+          } >> gradle.properties
+
+      - name: Build release APK
+        run: ./gradlew clean assembleRelease
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nova-root-apk
+          path: manager/app/build/outputs/apk/release/*.apk
+
+      - name: Publish GitHub Release (public download link)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          APK=$(ls app/build/outputs/apk/release/*.apk | head -1)
+          gh release create "nova-${{ github.run_number }}" "$APK" \
+            --target "${{ github.sha }}" \
+            --title "Nova Root build ${{ github.run_number }}" \
+            --notes "Signed Nova Root manager (GPL v2, fork of KernelSU-Next v3.4.2)."

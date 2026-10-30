@@ -206,6 +206,7 @@ class MainActivity : FragmentActivity() {
     var navigateLoc by mutableStateOf<NavigateLocation?>(null)
     var moduleActionId by mutableStateOf<String?>(null)
     var amoledModeState = mutableStateOf(false)
+    var novaThemeState = mutableStateOf(0)
     var navBarEnabled = mutableStateOf(true)
     private val handler = Handler(Looper.getMainLooper())
 
@@ -237,6 +238,7 @@ class MainActivity : FragmentActivity() {
         try {
             val prefsInit = getSharedPreferences("settings", MODE_PRIVATE)
             amoledModeState.value = prefsInit.getBoolean("enable_amoled", false)
+            novaThemeState.value = prefsInit.getInt("nova_theme", 0)
             navBarEnabled.value = prefsInit.getBoolean("enable_navbar", true)
         } catch (_: Exception) {}
 
@@ -261,7 +263,7 @@ class MainActivity : FragmentActivity() {
             handleIntent(intent)
 
         setContent { Box(modifier = Modifier.fillMaxSize()) {
-            KernelSUTheme(amoledMode = amoledModeState.value) {
+            KernelSUTheme(amoledMode = amoledModeState.value, novaTheme = novaThemeState.value) {
                 var showSplash by remember { mutableStateOf(true) }
                 var splashRotationTarget by remember { mutableStateOf(0f) }
                 val splashRotation by animateFloatAsState(
@@ -573,7 +575,7 @@ class MainActivity : FragmentActivity() {
     @Composable
     private fun AppLockOverlay(amoledMode: Boolean) {
         if (appLockState.value) {
-            KernelSUTheme(amoledMode = amoledMode) {
+            KernelSUTheme(amoledMode = amoledMode, novaTheme = novaThemeState.value) {
                 androidx.compose.material3.Surface(modifier = Modifier.fillMaxSize()) {
                     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
                     var isPromptShowing by remember { mutableStateOf(false) }
@@ -631,6 +633,14 @@ class MainActivity : FragmentActivity() {
             prefs.edit().putBoolean("enable_amoled", enabled).apply()
         } catch (_: Exception) {}
         amoledModeState.value = enabled
+    }
+
+    fun setNovaTheme(index: Int) {
+        try {
+            val prefs = getSharedPreferences("settings", MODE_PRIVATE)
+            prefs.edit().putInt("nova_theme", index).apply()
+        } catch (_: Exception) {}
+        novaThemeState.value = index
     }
 
     fun setNavBarEnabled(enabled: Boolean) {

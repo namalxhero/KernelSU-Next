@@ -8,7 +8,7 @@
     <string name="issue_report_github_link">https://github.com/KernelSU-Next/KernelSU-Next/issues</string>
     <string name="issue_report_telegram_link">https://t.me/ksunext</string>
     <string name="confirm">Confirm</string>
-    <string name="app_name" translatable="false">KernelSU-Next</string>
+    <string name="app_name" translatable="false">Nova Root</string>
     <string name="home">Home</string>
     <string name="home_not_installed">Not installed</string>
     <string name="home_click_to_install">Click to install</string>
@@ -375,4 +375,8 @@
     <string name="module_unknown">Unknown Module</string>
     <string name="template_example_title">Example</string>
     <string name="template_example_description">This is an example template</string>
+    <string name="settings_nova_theme">Theme</string>
+    <string name="theme_anime_dark">Anime Dark</string>
+    <string name="theme_ocean_glass">Ocean Glass</string>
+    <string name="theme_midnight_amoled">Midnight AMOLED</string>
 </resources>

@@ -17,6 +17,8 @@ import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.ViewCarousel
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.Dock
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.ui.Alignment
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -141,6 +143,46 @@ fun CustomizationScreen(navigator: DestinationsNavigator) {
                 supportingContent = { Text(currentLanguageDisplay) },
                 modifier = Modifier.clickable {
                     showLanguageSheet = true
+                }
+            )
+
+            val novaActivity = LocalContext.current as? MainActivity
+            var novaTheme by rememberSaveable { mutableStateOf(prefs.getInt("nova_theme", 0)) }
+            val novaThemeNames = listOf(
+                stringResource(R.string.theme_anime_dark),
+                stringResource(R.string.theme_ocean_glass),
+                stringResource(R.string.theme_midnight_amoled)
+            )
+            ListItem(
+                leadingContent = { Icon(Icons.Filled.Palette, stringResource(R.string.settings_nova_theme)) },
+                headlineContent = { Text(
+                    text = stringResource(R.string.settings_nova_theme),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                ) },
+                supportingContent = {
+                    Column(modifier = Modifier.selectableGroup()) {
+                        novaThemeNames.forEachIndexed { index, name ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .selectable(
+                                        selected = novaTheme == index,
+                                        role = Role.RadioButton,
+                                        onClick = {
+                                            novaTheme = index
+                                            novaActivity?.setNovaTheme(index)
+                                        }
+                                    )
+                                    .padding(vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(selected = novaTheme == index, onClick = null)
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(name)
+                            }
+                        }
+                    }
                 }
             )
 

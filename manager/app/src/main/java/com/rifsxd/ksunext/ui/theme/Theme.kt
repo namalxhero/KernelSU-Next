@@ -1,10 +1,8 @@
 package com.rifsxd.ksunext.ui.theme
 
-import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -12,17 +10,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
-    primary = PRIMARY,
-    secondary = PRIMARY_DARK,
-    tertiary = SECONDARY_DARK
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = PRIMARY,
-    secondary = PRIMARY_LIGHT,
-    tertiary = SECONDARY_LIGHT
-)
+const val NOVA_ANIME_DARK = 0
+const val NOVA_OCEAN_GLASS = 1
+const val NOVA_MIDNIGHT_AMOLED = 2
 
 fun Color.blend(other: Color, ratio: Float): Color {
     val inverse = 1f - ratio
@@ -34,52 +24,78 @@ fun Color.blend(other: Color, ratio: Float): Color {
     )
 }
 
+// "Glass" look: containers are slightly see-through and tinted
+private fun novaScheme(
+    primary: Color,
+    secondary: Color,
+    tertiary: Color,
+    background: Color,
+    glass: Color,
+): ColorScheme {
+    val c1 = glass.copy(alpha = 0.55f)
+    val c2 = glass.copy(alpha = 0.70f)
+    val c3 = glass.copy(alpha = 0.85f)
+    return darkColorScheme(
+        primary = primary,
+        onPrimary = Color(0xFF0B0716),
+        primaryContainer = primary.blend(background, 0.70f),
+        onPrimaryContainer = Color(0xFFF3EEFF),
+        secondary = secondary,
+        onSecondary = Color(0xFF0B0716),
+        secondaryContainer = secondary.blend(background, 0.75f),
+        onSecondaryContainer = Color(0xFFFFEEF6),
+        tertiary = tertiary,
+        onTertiary = Color(0xFF0B0716),
+        tertiaryContainer = tertiary.blend(background, 0.75f),
+        onTertiaryContainer = Color(0xFFE9FBFF),
+        background = background,
+        onBackground = Color(0xFFEDE7FF),
+        surface = background,
+        onSurface = Color(0xFFEDE7FF),
+        surfaceVariant = c3,
+        onSurfaceVariant = Color(0xFFC9C0E0),
+        surfaceContainerLowest = background,
+        surfaceContainerLow = c1,
+        surfaceContainer = c2,
+        surfaceContainerHigh = c3,
+        surfaceContainerHighest = glass,
+        outline = primary.copy(alpha = 0.45f),
+        outlineVariant = primary.copy(alpha = 0.20f),
+    )
+}
+
+private val AnimeDarkScheme = novaScheme(
+    primary = NOVA_PURPLE, secondary = NOVA_PINK, tertiary = NOVA_CYAN,
+    background = Color(0xFF0B0716), glass = Color(0xFF2A1B4D),
+)
+private val OceanGlassScheme = novaScheme(
+    primary = OCEAN_CYAN, secondary = OCEAN_BLUE, tertiary = OCEAN_ICE,
+    background = Color(0xFF061018), glass = Color(0xFF123A57),
+)
+private val MidnightAmoledScheme = novaScheme(
+    primary = MIDNIGHT_GREEN, secondary = MIDNIGHT_MINT, tertiary = MIDNIGHT_LIME,
+    background = Color(0xFF000000), glass = Color(0xFF14201A),
+)
+
 @Composable
 fun KernelSUTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    darkTheme: Boolean = true,
+    dynamicColor: Boolean = false,
     amoledMode: Boolean = false,
+    novaTheme: Int = NOVA_ANIME_DARK,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        amoledMode && darkTheme && dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            val dynamicScheme = dynamicDarkColorScheme(context)
-            dynamicScheme.copy(
-                background = AMOLED_BLACK,
-                surface = AMOLED_BLACK,
-                surfaceVariant = dynamicScheme.surfaceVariant.blend(AMOLED_BLACK, 0.6f),
-                surfaceContainer = dynamicScheme.surfaceContainer.blend(AMOLED_BLACK, 0.6f),
-                surfaceContainerLow = dynamicScheme.surfaceContainerLow.blend(AMOLED_BLACK, 0.6f),
-                surfaceContainerLowest = dynamicScheme.surfaceContainerLowest.blend(AMOLED_BLACK, 0.6f),
-                surfaceContainerHigh = dynamicScheme.surfaceContainerHigh.blend(AMOLED_BLACK, 0.6f),
-                surfaceContainerHighest = dynamicScheme.surfaceContainerHighest.blend(AMOLED_BLACK, 0.6f)
-            )
-        }
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        amoledMode && darkTheme -> {
-            DarkColorScheme.copy(
-                background = AMOLED_BLACK,
-                surface = AMOLED_BLACK,
-                surfaceVariant = DARK_GREY.blend(AMOLED_BLACK, 0.8f),
-                surfaceContainer = DARK_GREY.blend(AMOLED_BLACK, 0.8f),
-                surfaceContainerLow = DARK_GREY.blend(AMOLED_BLACK, 0.8f),
-                surfaceContainerLowest = DARK_GREY.blend(AMOLED_BLACK, 0.8f),
-                surfaceContainerHigh = DARK_GREY.blend(AMOLED_BLACK, 0.8f),
-                surfaceContainerHighest = DARK_GREY.blend(AMOLED_BLACK, 0.8f),
-            )
-        }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+    // Nova Root themes are always dark. darkTheme / dynamicColor are kept only so old call sites still compile.
+    var colorScheme = when (novaTheme) {
+        NOVA_OCEAN_GLASS -> OceanGlassScheme
+        NOVA_MIDNIGHT_AMOLED -> MidnightAmoledScheme
+        else -> AnimeDarkScheme
+    }
+    if (amoledMode) {
+        colorScheme = colorScheme.copy(background = AMOLED_BLACK, surface = AMOLED_BLACK)
     }
 
-    SystemBarStyle(
-        darkMode = darkTheme
-    )
+    SystemBarStyle(darkMode = true)
 
     MaterialTheme(
         colorScheme = colorScheme,
@@ -103,16 +119,7 @@ private fun SystemBarStyle(
                 statusBarScrim.toArgb(),
                 statusBarScrim.toArgb(),
             ) { darkMode },
-            navigationBarStyle = when {
-                darkMode -> SystemBarStyle.dark(
-                    navigationBarScrim.toArgb()
-                )
-
-                else -> SystemBarStyle.light(
-                    navigationBarScrim.toArgb(),
-                    navigationBarScrim.toArgb(),
-                )
-            }
+            navigationBarStyle = SystemBarStyle.dark(navigationBarScrim.toArgb())
         )
     }
 }

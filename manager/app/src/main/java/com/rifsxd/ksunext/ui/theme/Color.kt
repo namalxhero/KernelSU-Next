@@ -18,3 +18,16 @@ val GREEN = Color(0xFF4CAF50)             // Green
 val RED = Color(0xFFF44336)               // Red
 val YELLOW = Color(0xFFFFEB3B)            // Yellow
 val ORANGE = Color(0xFFFF9800)            // Orange
+
+// ---- Nova Root palettes ----
+val NOVA_PURPLE = Color(0xFFB388FF)       // Anime Dark: purple
+val NOVA_PINK = Color(0xFFFF7EB6)         // Anime Dark: pink
+val NOVA_CYAN = Color(0xFF7DE8FF)         // Anime Dark: cyan accent
+
+val OCEAN_CYAN = Color(0xFF4DD0E1)        // Ocean Glass: cyan
+val OCEAN_BLUE = Color(0xFF5C9DFF)        // Ocean Glass: blue
+val OCEAN_ICE = Color(0xFF9AE6FF)         // Ocean Glass: ice
+
+val MIDNIGHT_GREEN = Color(0xFF39FF88)    // Midnight AMOLED: neon green
+val MIDNIGHT_MINT = Color(0xFF00E676)     // Midnight AMOLED: mint
+val MIDNIGHT_LIME = Color(0xFFB2FF59)     // Midnight AMOLED: lime
