@@ -1,5 +1,9 @@
 package com.rifsxd.ksunext.ui.screen
 
+import com.rifsxd.ksunext.ui.component.RootXBackdrop
+import com.rifsxd.ksunext.ui.component.XBoom
+import com.rifsxd.ksunext.ui.component.XBoomMood
+import com.rifsxd.ksunext.ui.component.glass
 import androidx.core.net.toUri
 import androidx.compose.foundation.Image
 import androidx.compose.ui.platform.LocalUriHandler
@@ -128,7 +132,10 @@ fun HomeScreen(navigator: DestinationsNavigator) {
         )
     } else null
 
+    Box(Modifier.fillMaxSize()) {
+    RootXBackdrop()
     Scaffold(
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
             TopBar(
                 kernelVersion,
@@ -174,15 +181,10 @@ fun HomeScreen(navigator: DestinationsNavigator) {
                 Natives.isLkmMode
             }
 
-            StatusCard(
-                kernelVersion,
-                ksuVersion,
-                kernelUAPIVersion,
-                lkmMode,
-                ksuVersionTagParam = ksuVersionTag
-            ) {
+            RootXHero(ksuVersion, lkmMode) {
                 navigator.navigate(InstallScreenDestination)
             }
+            RootXTiles(lkmMode)
 
             val homeDestination = BottomBarDestination.entries.firstOrNull()
             val startRoute = homeDestination?.direction?.route
@@ -273,18 +275,10 @@ fun HomeScreen(navigator: DestinationsNavigator) {
                 )
             }
 
-            val checkUpdate =
-                LocalContext.current.getSharedPreferences("settings", Context.MODE_PRIVATE)
-                    .getBoolean("check_update", true)
-            if (checkUpdate) {
-                UpdateCard()
-            }
-
             InfoCard(autoExpand = developerOptionsEnabled)
-            IssueReportCard()
-            ContributorsCard()
             Spacer(Modifier)
         }
+    }
     }
 }
 
@@ -1525,5 +1519,97 @@ private fun WarningCardPreview() {
             message = "Warning message",
             MaterialTheme.colorScheme.outlineVariant,
             onClick = {})
+    }
+}
+
+
+@Composable
+private fun RootXHero(ksuVersion: Int?, lkmMode: Boolean?, onInstall: () -> Unit) {
+    val working = ksuVersion != null
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .glass(RoundedCornerShape(28.dp))
+            .clickable(enabled = !working) { onInstall() }
+            .padding(horizontal = 18.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        XBoom(
+            Modifier.height(92.dp),
+            mood = if (working) XBoomMood.Happy else XBoomMood.Scared,
+            blink = false,
+            bob = true
+        )
+        Spacer(Modifier.width(16.dp))
+        Column {
+            Text(
+                text = if (working) "Working" else "Not installed",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = if (working) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = if (working) {
+                    "RootX is active" + (if (lkmMode == true) " (LKM)" else "")
+                } else {
+                    "Tap to install"
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun RootXTile(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier
+            .glass(RoundedCornerShape(20.dp))
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+    ) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(4.dp))
+        Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+private fun rootxSelinux(): String = runCatching {
+    when (java.io.File("/sys/fs/selinux/enforce").readText().trim()) {
+        "1" -> "Enforcing"
+        "0" -> "Permissive"
+        else -> "Unknown"
+    }
+}.getOrDefault("Unknown")
+
+private fun rootxUptime(): String {
+    val s = android.os.SystemClock.elapsedRealtime() / 1000
+    val d = s / 86400
+    val h = (s % 86400) / 3600
+    val m = (s % 3600) / 60
+    return if (d > 0) "${d}d ${h}h" else if (h > 0) "${h}h ${m}m" else "${m}m"
+}
+
+@Composable
+private fun RootXTiles(lkmMode: Boolean?) {
+    val context = LocalContext.current
+    val selinux = remember { rootxSelinux() }
+    val uptime = remember { rootxUptime() }
+    val manager = remember { getManagerVersion(context).first }
+    val mode = when (lkmMode) {
+        true -> "LKM"
+        false -> "Built-in"
+        null -> "-"
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            RootXTile("SELinux", selinux, Modifier.weight(1f))
+            RootXTile("Uptime", uptime, Modifier.weight(1f))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            RootXTile("Manager", manager, Modifier.weight(1f))
+            RootXTile("Mode", mode, Modifier.weight(1f))
+        }
     }
 }

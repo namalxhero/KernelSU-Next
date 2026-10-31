@@ -581,7 +581,7 @@ fun ModuleRepoScreen(navigator: DestinationsNavigator) {
                         .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    com.rifsxd.ksunext.ui.component.XLoader()
                 }
             }
             is ModuleRepoState.Success -> {

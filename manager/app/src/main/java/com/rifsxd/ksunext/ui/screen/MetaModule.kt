@@ -241,7 +241,7 @@ fun MetaModuleScreen(navigator: DestinationsNavigator) {
                         .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    com.rifsxd.ksunext.ui.component.XLoader()
                 }
             }
             is MetaModuleState.Success -> {

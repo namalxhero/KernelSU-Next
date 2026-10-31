@@ -34,6 +34,23 @@ fun Color.blend(other: Color, ratio: Float): Color {
     )
 }
 
+private val RootXColorScheme = darkColorScheme(
+    primary = Color(0xFF3CC8FF), onPrimary = Color(0xFF001018),
+    primaryContainer = Color(0xFF0B2A36), onPrimaryContainer = Color(0xFFBFF0FF),
+    secondary = Color(0xFF6FDCFF), onSecondary = Color(0xFF001018),
+    secondaryContainer = Color(0xFF12303C), onSecondaryContainer = Color(0xFFD5F4FF),
+    tertiary = Color(0xFFC3A4FF), onTertiary = Color(0xFF1B0F33),
+    tertiaryContainer = Color(0xFF2A1F45), onTertiaryContainer = Color(0xFFE8DDFF),
+    background = Color(0xFF000000), onBackground = Color(0xFFEEF6F8),
+    surface = Color(0xFF000000), onSurface = Color(0xFFEEF6F8),
+    surfaceVariant = Color(0xFF111A1D), onSurfaceVariant = Color(0xFF9FB1B8),
+    surfaceContainerLowest = Color(0xFF000000), surfaceContainerLow = Color(0xFF070B0C),
+    surfaceContainer = Color(0xFF0C1214), surfaceContainerHigh = Color(0xFF121A1D),
+    surfaceContainerHighest = Color(0xFF182226),
+    outline = Color(0xFF3A4A50), outlineVariant = Color(0xFF1E2A2F),
+    error = Color(0xFFFF6B6B), errorContainer = Color(0xFF3A1416), onErrorContainer = Color(0xFFFFB4B4)
+)
+
 @Composable
 fun KernelSUTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -42,43 +59,10 @@ fun KernelSUTheme(
     amoledMode: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        amoledMode && darkTheme && dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            val dynamicScheme = dynamicDarkColorScheme(context)
-            dynamicScheme.copy(
-                background = AMOLED_BLACK,
-                surface = AMOLED_BLACK,
-                surfaceVariant = dynamicScheme.surfaceVariant.blend(AMOLED_BLACK, 0.6f),
-                surfaceContainer = dynamicScheme.surfaceContainer.blend(AMOLED_BLACK, 0.6f),
-                surfaceContainerLow = dynamicScheme.surfaceContainerLow.blend(AMOLED_BLACK, 0.6f),
-                surfaceContainerLowest = dynamicScheme.surfaceContainerLowest.blend(AMOLED_BLACK, 0.6f),
-                surfaceContainerHigh = dynamicScheme.surfaceContainerHigh.blend(AMOLED_BLACK, 0.6f),
-                surfaceContainerHighest = dynamicScheme.surfaceContainerHighest.blend(AMOLED_BLACK, 0.6f)
-            )
-        }
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        amoledMode && darkTheme -> {
-            DarkColorScheme.copy(
-                background = AMOLED_BLACK,
-                surface = AMOLED_BLACK,
-                surfaceVariant = DARK_GREY.blend(AMOLED_BLACK, 0.8f),
-                surfaceContainer = DARK_GREY.blend(AMOLED_BLACK, 0.8f),
-                surfaceContainerLow = DARK_GREY.blend(AMOLED_BLACK, 0.8f),
-                surfaceContainerLowest = DARK_GREY.blend(AMOLED_BLACK, 0.8f),
-                surfaceContainerHigh = DARK_GREY.blend(AMOLED_BLACK, 0.8f),
-                surfaceContainerHighest = DARK_GREY.blend(AMOLED_BLACK, 0.8f),
-            )
-        }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val colorScheme = RootXColorScheme
 
     SystemBarStyle(
-        darkMode = darkTheme
+        darkMode = true
     )
 
     MaterialTheme(

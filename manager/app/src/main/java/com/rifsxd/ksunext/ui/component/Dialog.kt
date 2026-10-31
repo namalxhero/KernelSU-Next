@@ -390,7 +390,7 @@ private fun LoadingDialog() {
             Box(
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator()
+                com.rifsxd.ksunext.ui.component.XLoader()
             }
         }
     }

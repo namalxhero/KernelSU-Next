@@ -24,6 +24,11 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.Color
+import com.rifsxd.ksunext.ui.component.XBoom
+import com.rifsxd.ksunext.ui.component.XBoomMood
+import com.rifsxd.ksunext.ui.component.glass
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
@@ -567,6 +572,7 @@ class MainActivity : FragmentActivity() {
             }
 
             AppLockOverlay(amoledModeState.value)
+            com.rifsxd.ksunext.ui.component.RootXSplashOverlay()
 
         } } // Box & setContent
     } // onCreate
@@ -742,6 +748,18 @@ private fun BottomBar(
         label = "selectedIndex"
     )
 
+    var runnerVisible by remember { mutableStateOf(false) }
+    var runnerFirst by remember { mutableStateOf(true) }
+    LaunchedEffect(effectiveSelectedIndex) {
+        if (runnerFirst) {
+            runnerFirst = false
+        } else {
+            runnerVisible = true
+            kotlinx.coroutines.delay(1100)
+            runnerVisible = false
+        }
+    }
+
     fun navigateToIndex(index: Int) {
         val destination = visibleDestinations.getOrNull(index) ?: return
         if (destination.direction.route == currentRoute) return
@@ -774,11 +792,34 @@ private fun BottomBar(
                 .padding(horizontal = horizontalScreenPadding, vertical = 14.dp),
             contentAlignment = Alignment.Center
         ) {
+            val rDensity = LocalDensity.current
+            val boxWidthPx = with(rDensity) { (screenWidth - horizontalScreenPadding * 2).toPx() }
+            val navWidthPx = with(rDensity) {
+                ((56.dp * visibleDestinations.size) + (4.dp * (visibleDestinations.size - 1).coerceAtLeast(0)) + 14.dp).toPx()
+            }
+            val itemPx = with(rDensity) { 56.dp.toPx() }
+            val stepPx = with(rDensity) { 60.dp.toPx() }
+            val padPx = with(rDensity) { 7.dp.toPx() }
+            val mascotW = with(rDensity) { 43.dp.toPx() }
+            val rise = with(rDensity) { 58.dp.roundToPx() }
+            val runnerX = ((boxWidthPx - navWidthPx) / 2f + padPx + stepPx * animatedSelectedIndex + (itemPx - mascotW) / 2f).toInt()
+            AnimatedVisibility(
+                visible = runnerVisible,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .offset { IntOffset(runnerX, -rise) },
+                enter = fadeIn() + scaleIn(),
+                exit = fadeOut() + scaleOut()
+            ) {
+                XBoom(Modifier.height(54.dp), mood = XBoomMood.Happy, blink = false)
+            }
+
             Surface(
                 modifier = Modifier.wrapContentWidth(),
-                shape = RoundedCornerShape(24.dp),
-                tonalElevation = 3.dp,
-                shadowElevation = 8.dp
+                shape = RoundedCornerShape(34.dp),
+                color = Color.Transparent,
+                tonalElevation = 0.dp,
+                shadowElevation = 0.dp
             ) {
                 val itemSize = 56.dp
                 val itemSpacing = 4.dp
@@ -798,6 +839,7 @@ private fun BottomBar(
                     modifier = Modifier
                         .width(navBarWidth)
                         .height(72.dp)
+                        .glass(RoundedCornerShape(34.dp))
                         .pointerInput(visibleDestinations, effectiveSelectedIndex, isRtl) {
                             detectDragGestures(
                                 onDragStart = { offset ->
@@ -860,18 +902,24 @@ private fun BottomBar(
                                     .width(itemSize)
                                     // Subtle scale-up when dragging, like iOS
                                     .graphicsLayer {
-                                        scaleX = if (isDraggingPill) 1.1f else 1f
-                                        scaleY = if (isDraggingPill) 1.1f else 1f
+                                        val target = (if (isDraggingPill) dragTargetIndex else effectiveSelectedIndex).toFloat()
+                                        val mv = kotlin.math.abs(animatedSelectedIndex - target).coerceAtMost(1f)
+                                        val base = if (isDraggingPill) 1.1f else 1f
+                                        scaleX = base * (1f + 0.5f * mv)
+                                        scaleY = base * (1f - 0.14f * mv)
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(itemSize)
+                                        .requiredSize(itemSize + 6.dp)
                                         .background(
-                                            color = MaterialTheme.colorScheme.secondaryContainer,
-                                            shape = RoundedCornerShape(16.dp)
+                                            brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                                                listOf(Color(0x80FFFFFF), Color(0x1AFFFFFF), Color(0x663CC8FF))
+                                            ),
+                                            shape = androidx.compose.foundation.shape.CircleShape
                                         )
+                                        .border(1.dp, Color(0x66FFFFFF), androidx.compose.foundation.shape.CircleShape)
                                 )
                             }
                         }
