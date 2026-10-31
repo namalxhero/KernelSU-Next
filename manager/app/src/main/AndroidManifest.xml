@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:name=".KernelSUApplication"
@@ -22,13 +23,44 @@
             android:theme="@style/Theme.KernelSU"
             android:launchMode="singleTask"
             android:taskAffinity="">
+        </activity>
+
+        <!-- Launcher entry. Disabled by the "Hide app icon" switch in Tools -->
+        <activity-alias
+            android:name=".LauncherAlias"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name"
+            android:targetActivity=".ui.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <meta-data android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
-        </activity>
+        </activity-alias>
+
+        <receiver
+            android:name=".ui.util.SecretCodeReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.SECRET_CODE" />
+                <data android:scheme="android_secret_code" android:host="7668" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".ui.util.RootTimerReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".ui.util.RootXBootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
         
         <!-- Single entry point for opening zip files: the zip kind (module or
              AnyKernel3) is auto-detected in MainActivity -->

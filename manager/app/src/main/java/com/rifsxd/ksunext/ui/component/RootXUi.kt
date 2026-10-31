@@ -35,6 +35,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.layout.Row
+import com.rifsxd.ksunext.ui.util.RootXPin
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -172,7 +177,7 @@ fun XLoader(modifier: Modifier = Modifier, label: String = "Loading") {
 @Composable
 fun RootXBackdrop(modifier: Modifier = Modifier) {
     Canvas(modifier.fillMaxSize()) {
-        drawRect(Color.Black)
+        drawRect(Brush.verticalGradient(listOf(Color(0xFF0B1033), Color(0xFF121D52), Color(0xFF0A0F2C))))
         val w = size.width
         val h = size.height
         fun glow(c: Color, cx: Float, cy: Float, r: Float) {
@@ -182,9 +187,10 @@ fun RootXBackdrop(modifier: Modifier = Modifier) {
                 center = Offset(cx, cy)
             )
         }
-        glow(Color(0x661AA7E8), w * 0.95f, h * 0.10f, w * 0.75f)
-        glow(Color(0x557A4DFF), w * 0.0f, h * 0.45f, w * 0.7f)
-        glow(Color(0x33FF5FA8), w * 0.9f, h * 0.80f, w * 0.6f)
+        glow(Color(0x8A1AA7E8), w * 0.95f, h * 0.08f, w * 0.8f)
+        glow(Color(0x787A4DFF), w * 0.0f, h * 0.45f, w * 0.75f)
+        glow(Color(0x55FF5FA8), w * 0.95f, h * 0.78f, w * 0.65f)
+        glow(Color(0x3300E5C0), w * 0.05f, h * 0.95f, w * 0.6f)
     }
 }
 
@@ -203,7 +209,7 @@ fun RootXSplashOverlay() {
         Box(
             Modifier
                 .fillMaxSize()
-                .background(Color.Black)
+                .background(Color(0xFF0B1033))
                 .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {}
         ) {
             RootXBackdrop()
@@ -241,6 +247,77 @@ fun RootXSplashOverlay() {
                             .background(Brush.horizontalGradient(listOf(RootXCyan, Color(0xFFC3A4FF))))
                     )
                 }
+            }
+        }
+    }
+}
+
+
+/** Full-screen PIN prompt, shown at launch when a PIN has been set in Tools. */
+@Composable
+fun RootXPinOverlay() {
+    val context = LocalContext.current
+    var unlocked by rememberSaveable { mutableStateOf(!RootXPin.has(context)) }
+    if (unlocked) return
+    var entered by remember { mutableStateOf("") }
+    var wrong by remember { mutableStateOf(false) }
+    val need = RootXPin.length(context)
+
+    fun press(d: String) {
+        if (entered.length >= need) return
+        entered += d
+        wrong = false
+        if (entered.length == need) {
+            if (RootXPin.check(context, entered)) unlocked = true else { wrong = true; entered = "" }
+        }
+    }
+
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0B1033))
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {}
+    ) {
+        RootXBackdrop()
+        Column(
+            Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            XBoom(Modifier.height(110.dp), mood = if (wrong) XBoomMood.Scared else XBoomMood.Open)
+            Spacer(Modifier.height(14.dp))
+            Text(if (wrong) "Wrong PIN" else "Enter your PIN", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(16.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                repeat(need) { i ->
+                    Box(
+                        Modifier
+                            .size(14.dp)
+                            .clip(CircleShape)
+                            .background(if (i < entered.length) RootXCyan else Color(0x33FFFFFF))
+                    )
+                }
+            }
+            Spacer(Modifier.height(28.dp))
+            val rows = listOf(listOf("1", "2", "3"), listOf("4", "5", "6"), listOf("7", "8", "9"), listOf("C", "0", "<"))
+            rows.forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    row.forEach { k ->
+                        OutlinedButton(
+                            onClick = {
+                                when (k) {
+                                    "C" -> entered = ""
+                                    "<" -> if (entered.isNotEmpty()) entered = entered.dropLast(1)
+                                    else -> press(k)
+                                }
+                            },
+                            modifier = Modifier.size(72.dp),
+                            shape = CircleShape,
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
+                        ) { Text(k, fontSize = 22.sp, color = Color.White) }
+                    }
+                }
+                Spacer(Modifier.height(14.dp))
             }
         }
     }

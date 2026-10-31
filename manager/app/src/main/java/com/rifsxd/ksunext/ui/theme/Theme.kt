@@ -35,20 +35,20 @@ fun Color.blend(other: Color, ratio: Float): Color {
 }
 
 private val RootXColorScheme = darkColorScheme(
-    primary = Color(0xFF3CC8FF), onPrimary = Color(0xFF001018),
-    primaryContainer = Color(0xFF0B2A36), onPrimaryContainer = Color(0xFFBFF0FF),
-    secondary = Color(0xFF6FDCFF), onSecondary = Color(0xFF001018),
-    secondaryContainer = Color(0xFF12303C), onSecondaryContainer = Color(0xFFD5F4FF),
+    primary = Color(0xFF4FD0FF), onPrimary = Color(0xFF00121C),
+    primaryContainer = Color(0xFF123A5C), onPrimaryContainer = Color(0xFFCDF1FF),
+    secondary = Color(0xFF8FE3FF), onSecondary = Color(0xFF00121C),
+    secondaryContainer = Color(0xFF1C3A63), onSecondaryContainer = Color(0xFFD9F4FF),
     tertiary = Color(0xFFC3A4FF), onTertiary = Color(0xFF1B0F33),
-    tertiaryContainer = Color(0xFF2A1F45), onTertiaryContainer = Color(0xFFE8DDFF),
-    background = Color(0xFF000000), onBackground = Color(0xFFEEF6F8),
-    surface = Color(0xFF000000), onSurface = Color(0xFFEEF6F8),
-    surfaceVariant = Color(0xFF111A1D), onSurfaceVariant = Color(0xFF9FB1B8),
-    surfaceContainerLowest = Color(0xFF000000), surfaceContainerLow = Color(0xFF070B0C),
-    surfaceContainer = Color(0xFF0C1214), surfaceContainerHigh = Color(0xFF121A1D),
-    surfaceContainerHighest = Color(0xFF182226),
-    outline = Color(0xFF3A4A50), outlineVariant = Color(0xFF1E2A2F),
-    error = Color(0xFFFF6B6B), errorContainer = Color(0xFF3A1416), onErrorContainer = Color(0xFFFFB4B4)
+    tertiaryContainer = Color(0xFF38285F), onTertiaryContainer = Color(0xFFEADFFF),
+    background = Color.Transparent, onBackground = Color(0xFFEEF3FF),
+    surface = Color(0xFF0E1538), onSurface = Color(0xFFEEF3FF),
+    surfaceVariant = Color(0xFF1B2452), onSurfaceVariant = Color(0xFFA9B6DD),
+    surfaceContainerLowest = Color(0xFF0C1232), surfaceContainerLow = Color(0xFF151D47),
+    surfaceContainer = Color(0xFF1A2352), surfaceContainerHigh = Color(0xFF202A5E),
+    surfaceContainerHighest = Color(0x2EFFFFFF),
+    outline = Color(0xFF4A5A94), outlineVariant = Color(0xFF2A3566),
+    error = Color(0xFFFF7B8A), errorContainer = Color(0xFF4A1A2C), onErrorContainer = Color(0xFFFFC2CA)
 )
 
 @Composable

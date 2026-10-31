@@ -254,7 +254,7 @@ class MainActivity : FragmentActivity() {
         }
 
         val prefsInit = getSharedPreferences("settings", MODE_PRIVATE)
-        val enableStartupAnimation = prefsInit.getBoolean("enable_startup_animation", true)
+        val enableStartupAnimation = false
         val requireBiometric = prefsInit.getBoolean("enable_biometric_lock", false)
 
         if (savedInstanceState != null) {
@@ -267,6 +267,7 @@ class MainActivity : FragmentActivity() {
             handleIntent(intent)
 
         setContent { Box(modifier = Modifier.fillMaxSize()) {
+            com.rifsxd.ksunext.ui.component.RootXBackdrop()
             KernelSUTheme(amoledMode = amoledModeState.value) {
                 var showSplash by remember { mutableStateOf(enableStartupAnimation) }
                 var splashRotationTarget by remember { mutableStateOf(0f) }
@@ -572,6 +573,7 @@ class MainActivity : FragmentActivity() {
             }
 
             AppLockOverlay(amoledModeState.value)
+            com.rifsxd.ksunext.ui.component.RootXPinOverlay()
             com.rifsxd.ksunext.ui.component.RootXSplashOverlay()
 
         } } // Box & setContent

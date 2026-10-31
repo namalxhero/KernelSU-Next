@@ -123,6 +123,8 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
     var zipUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
 
     var showConfirmDialog by remember { mutableStateOf(false) }
+    var scanUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    var scanFindings by remember { mutableStateOf<List<com.rifsxd.ksunext.ui.util.ScanFinding>>(emptyList()) }
 
     val webUILauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -156,9 +158,52 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
 
         viewModel.updateZipUris(uris)
 
-        navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(uris)))
-        viewModel.clearZipUris()
-        viewModel.markNeedRefresh()
+        val findings = com.rifsxd.ksunext.ui.util.ModuleScanner.scan(context, uris)
+        if (findings.isEmpty()) {
+            navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(uris)))
+            viewModel.clearZipUris()
+            viewModel.markNeedRefresh()
+        } else {
+            scanUris = uris
+            scanFindings = findings
+        }
+    }
+
+    if (scanFindings.isNotEmpty()) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { scanFindings = emptyList(); viewModel.clearZipUris() },
+            title = { Text("Risky commands found") },
+            text = {
+                androidx.compose.foundation.layout.Column(
+                    modifier = Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()),
+                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)
+                ) {
+                    Text("This module contains commands that can harm your phone or data. Install only if you trust it.")
+                    scanFindings.forEach { f ->
+                        Text(
+                            "${f.reason}\n${f.file}:${f.line}\n${f.text}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    val u = scanUris
+                    scanFindings = emptyList()
+                    navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(u)))
+                    viewModel.clearZipUris()
+                    viewModel.markNeedRefresh()
+                }) { Text("Install anyway") }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    scanFindings = emptyList()
+                    viewModel.clearZipUris()
+                }) { Text("Cancel") }
+            }
+        )
     }
 
     val listState = rememberLazyListState()
@@ -487,7 +532,13 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
                         },
                     boxModifier = Modifier.padding(innerPadding),
                     onInstallModule = {
-                        navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(listOf(it))))
+                        val found = com.rifsxd.ksunext.ui.util.ModuleScanner.scan(context, listOf(it))
+                        if (found.isEmpty()) {
+                            navigator.navigate(FlashScreenDestination(FlashIt.FlashModules(listOf(it))))
+                        } else {
+                            scanUris = listOf(it)
+                            scanFindings = found
+                        }
                     },
                     onClickModule = { id, name, hasWebUi ->
                         if (hasWebUi) {

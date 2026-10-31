@@ -276,6 +276,8 @@ fun HomeScreen(navigator: DestinationsNavigator) {
             }
 
             InfoCard(autoExpand = developerOptionsEnabled)
+            IssueReportCard()
+            ContributorsCard()
             Spacer(Modifier)
         }
     }
