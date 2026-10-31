@@ -63,11 +63,16 @@ fun download(
     downloadManager.enqueue(request)
 }
 
+// RootX: update check against the original KernelSU-Next releases is disabled,
+// because it would offer to replace RootX with the original manager.
+private const val UPDATE_CHECK_ENABLED = false
+
 fun checkNewVersion(preferSpoofed: Boolean? = null): LatestVersionInfo {
     // Next version updates
     val url = "https://api.github.com/repos/KernelSU-Next/KernelSU-Next/releases/latest"
     // default null value if failed
     val defaultValue = LatestVersionInfo()
+    if (!UPDATE_CHECK_ENABLED) return defaultValue
     runCatching {
         ksuApp.okhttpClient.newCall(okhttp3.Request.Builder().url(url).build()).execute()
             .use { response ->
