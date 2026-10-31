@@ -1,0 +1,6 @@
+id=aaa_nova_bootguard
+name=Nova Boot Guard
+version=1.0
+versionCode=1
+author=Nova Root
+description=Disables all other modules after 3 failed boots in a row (bootloop rescue).

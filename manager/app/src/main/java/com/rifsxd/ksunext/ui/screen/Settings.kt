@@ -680,6 +680,25 @@ private fun SecurityCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
+                    .clickable { navigator.navigate(NovaToolsScreenDestination) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                leadingContent = { Icon(androidx.compose.material.icons.Icons.Filled.AutoAwesome, null) },
+                headlineContent = {
+                    Text(
+                        text = "Nova Tools",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                },
+                supportingContent = {
+                    Text("Root stats, bootloop rescue, hide manager")
+                }
+            )
+
+            ListItem(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
                     .clickable { navigator.navigate(DeveloperScreenDestination) },
                 colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 leadingContent = { Icon(Icons.Filled.DeveloperBoard, null) },
