@@ -135,6 +135,7 @@ jobs:
           ./gradlew clean assembleRelease 2>&1 | tee gradle.log
           code=${PIPESTATUS[0]}
           if [ "$code" != "0" ]; then
+            echo "::error title=gradle-tail::$(tail -n 14 gradle.log | tr '\n' ' ' | cut -c1-900)"
             grep -nE "^e: |error:|What went wrong|FAILED|Execution failed|Caused by|Lint found|AAPT|Resource" gradle.log | head -12 | cut -c1-260 | while read -r l; do echo "::error title=gradle::$l"; done
           fi
           exit $code
