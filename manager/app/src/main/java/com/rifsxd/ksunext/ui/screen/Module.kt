@@ -1,6 +1,7 @@
 package com.rifsxd.ksunext.ui.screen
 
 
+import com.rifsxd.ksunext.ui.component.Card
 import android.app.Activity.RESULT_OK
 import android.content.Context
 import android.content.Intent
@@ -169,6 +170,7 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
     val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + if (isNavBarHidden) 0.dp else 112.dp
 
     Scaffold(
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
             SearchAppBar(
                 title = {

@@ -62,7 +62,7 @@ private fun AboutCardContent() {
                 shape = CircleShape
             ) {
                 Image(
-                    painter = painterResource(id = R.mipmap.ic_launcher_foreground),
+                    painter = painterResource(id = R.drawable.ic_nova_fg),
                     contentDescription = null,
                     modifier = Modifier.scale(1.5f)
                 )

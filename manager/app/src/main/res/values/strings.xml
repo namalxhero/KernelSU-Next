@@ -379,4 +379,6 @@
     <string name="theme_anime_dark">Anime Dark</string>
     <string name="theme_ocean_glass">Ocean Glass</string>
     <string name="theme_midnight_amoled">Midnight AMOLED</string>
+    <string name="settings_nova_live_bg">Live anime background</string>
+    <string name="settings_nova_live_bg_summary">Animated stars, sakura petals and city lights. Turn off to save battery.</string>
 </resources>

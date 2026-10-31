@@ -1,5 +1,6 @@
 package com.rifsxd.ksunext.ui.screen
 
+import com.rifsxd.ksunext.ui.component.ElevatedCard
 import androidx.core.net.toUri
 import androidx.compose.foundation.Image
 import androidx.compose.ui.platform.LocalUriHandler
@@ -129,6 +130,7 @@ fun HomeScreen(navigator: DestinationsNavigator) {
     } else null
 
     Scaffold(
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
             TopBar(
                 kernelVersion,

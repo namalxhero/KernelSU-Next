@@ -1,5 +1,6 @@
 package com.rifsxd.ksunext.ui.screen
 
+import com.rifsxd.ksunext.ui.component.Card
 import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -224,6 +225,7 @@ fun MetaModuleScreen(navigator: DestinationsNavigator) {
     }
 
     Scaffold(
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
             TopBar(
                 onBack = dropUnlessResumed { navigator.popBackStack() },

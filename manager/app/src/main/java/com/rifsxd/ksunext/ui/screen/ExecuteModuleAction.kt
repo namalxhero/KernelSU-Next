@@ -94,6 +94,7 @@ fun ExecuteModuleActionScreen(navigator: DestinationsNavigator, moduleId: String
     }
 
     Scaffold(
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
             TopBar(
                 isActionRunning = isActionRunning,

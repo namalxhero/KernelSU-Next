@@ -91,6 +91,7 @@ fun AppProfileTemplateScreen(
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
 
     Scaffold(
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
             val clipboard = LocalClipboard.current
             val context = LocalContext.current

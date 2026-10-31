@@ -181,6 +181,7 @@ fun InstallScreen(navigator: DestinationsNavigator) {
     } else null
 
     Scaffold(
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
             TopBar(
                 onBack = dropUnlessResumed { navigator.popBackStack() },

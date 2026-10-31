@@ -207,6 +207,7 @@ class MainActivity : FragmentActivity() {
     var moduleActionId by mutableStateOf<String?>(null)
     var amoledModeState = mutableStateOf(false)
     var novaThemeState = mutableStateOf(0)
+    var novaLiveState = mutableStateOf(true)
     var navBarEnabled = mutableStateOf(true)
     private val handler = Handler(Looper.getMainLooper())
 
@@ -239,6 +240,7 @@ class MainActivity : FragmentActivity() {
             val prefsInit = getSharedPreferences("settings", MODE_PRIVATE)
             amoledModeState.value = prefsInit.getBoolean("enable_amoled", false)
             novaThemeState.value = prefsInit.getInt("nova_theme", 0)
+            novaLiveState.value = prefsInit.getBoolean("nova_live_bg", true)
             navBarEnabled.value = prefsInit.getBoolean("enable_navbar", true)
         } catch (_: Exception) {}
 
@@ -263,7 +265,7 @@ class MainActivity : FragmentActivity() {
             handleIntent(intent)
 
         setContent { Box(modifier = Modifier.fillMaxSize()) {
-            KernelSUTheme(amoledMode = amoledModeState.value, novaTheme = novaThemeState.value) {
+            KernelSUTheme(amoledMode = amoledModeState.value, novaTheme = novaThemeState.value, liveBackground = novaLiveState.value) {
                 var showSplash by remember { mutableStateOf(true) }
                 var splashRotationTarget by remember { mutableStateOf(0f) }
                 val splashRotation by animateFloatAsState(
@@ -293,7 +295,7 @@ class MainActivity : FragmentActivity() {
                 ) { isSplashVisible ->
                     if (isSplashVisible) {
                         Box(
-                            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+                            modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(
@@ -301,11 +303,11 @@ class MainActivity : FragmentActivity() {
                                 verticalArrangement = Arrangement.Center
                             ) {
                                 Icon(
-                                    painter = painterResource(R.drawable.ic_ksu_next),
+                                    painter = painterResource(R.drawable.ic_nova_fg),
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = androidx.compose.ui.graphics.Color.Unspecified,
                                     modifier = Modifier
-                                        .size(120.dp)
+                                        .size(180.dp)
                                         .graphicsLayer { rotationZ = splashRotation }
                                 )
                             }
@@ -412,6 +414,7 @@ class MainActivity : FragmentActivity() {
                         }
 
                         Scaffold(
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
                             contentWindowInsets = WindowInsets(0, 0, 0, 0)
                         ) { innerPadding ->
                             Box(modifier = Modifier.fillMaxSize()) {
@@ -575,8 +578,8 @@ class MainActivity : FragmentActivity() {
     @Composable
     private fun AppLockOverlay(amoledMode: Boolean) {
         if (appLockState.value) {
-            KernelSUTheme(amoledMode = amoledMode, novaTheme = novaThemeState.value) {
-                androidx.compose.material3.Surface(modifier = Modifier.fillMaxSize()) {
+            KernelSUTheme(amoledMode = amoledMode, novaTheme = novaThemeState.value, liveBackground = novaLiveState.value) {
+                androidx.compose.material3.Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
                     var isPromptShowing by remember { mutableStateOf(false) }
                     DisposableEffect(lifecycleOwner) {
@@ -641,6 +644,14 @@ class MainActivity : FragmentActivity() {
             prefs.edit().putInt("nova_theme", index).apply()
         } catch (_: Exception) {}
         novaThemeState.value = index
+    }
+
+    fun setNovaLive(enabled: Boolean) {
+        try {
+            val prefs = getSharedPreferences("settings", MODE_PRIVATE)
+            prefs.edit().putBoolean("nova_live_bg", enabled).apply()
+        } catch (_: Exception) {}
+        novaLiveState.value = enabled
     }
 
     fun setNavBarEnabled(enabled: Boolean) {
@@ -785,9 +796,20 @@ private fun BottomBar(
         ) {
             Surface(
                 modifier = Modifier.wrapContentWidth(),
-                shape = RoundedCornerShape(24.dp),
-                tonalElevation = 3.dp,
-                shadowElevation = 8.dp
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                tonalElevation = 0.dp,
+                shadowElevation = 0.dp,
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    androidx.compose.ui.graphics.Brush.linearGradient(
+                        listOf(
+                            androidx.compose.ui.graphics.Color.White.copy(alpha = 0.60f),
+                            androidx.compose.ui.graphics.Color.White.copy(alpha = 0.08f),
+                            androidx.compose.ui.graphics.Color.White.copy(alpha = 0.30f)
+                        )
+                    )
+                )
             ) {
                 val itemSize = 56.dp
                 val itemSpacing = 4.dp

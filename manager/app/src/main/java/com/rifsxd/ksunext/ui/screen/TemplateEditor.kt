@@ -86,6 +86,7 @@ fun TemplateEditorScreen(
     }
 
     Scaffold(
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
             val author =
                 if (initialTemplate.author.isNotEmpty()) "@${initialTemplate.author}" else ""

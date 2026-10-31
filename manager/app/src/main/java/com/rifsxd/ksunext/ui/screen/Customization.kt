@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.ViewCarousel
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.Dock
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.ui.Alignment
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -102,6 +103,7 @@ fun CustomizationScreen(navigator: DestinationsNavigator) {
         ?: LocaleHelper.SYSTEM_LANGUAGE_TAG
 
     Scaffold(
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
             TopBar(
                 onBack = dropUnlessResumed {
@@ -185,6 +187,17 @@ fun CustomizationScreen(navigator: DestinationsNavigator) {
                     }
                 }
             )
+
+            var novaLive by rememberSaveable { mutableStateOf(prefs.getBoolean("nova_live_bg", true)) }
+            SwitchItem(
+                icon = Icons.Filled.AutoAwesome,
+                title = stringResource(id = R.string.settings_nova_live_bg),
+                summary = stringResource(id = R.string.settings_nova_live_bg_summary),
+                checked = novaLive
+            ) { checked ->
+                novaActivity?.setNovaLive(checked)
+                novaLive = checked
+            }
 
             var useBanner by rememberSaveable {
                 mutableStateOf(
