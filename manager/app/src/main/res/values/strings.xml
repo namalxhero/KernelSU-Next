@@ -381,4 +381,7 @@
     <string name="theme_midnight_amoled">Midnight AMOLED</string>
     <string name="settings_nova_live_bg">Live anime background</string>
     <string name="settings_nova_live_bg_summary">Animated stars, sakura petals and city lights. Turn off to save battery.</string>
+    <string name="nova_about_made_by">Made by namalxhero</string>
+    <string name="nova_about_credit">Based on KernelSU-Next (GPL v2) by rifsxd, weishu and contributors.</string>
+    <string name="nova_about_source">Source code</string>
 </resources>
