@@ -51,6 +51,8 @@ jobs:
   build-manager:
     needs: build-ksud
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -139,6 +141,21 @@ jobs:
             grep -nE "^e: |error:|What went wrong|FAILED|Execution failed|Caused by|Lint found|AAPT|Resource" gradle.log | head -12 | cut -c1-260 | while read -r l; do echo "::error title=gradle::$l"; done
           fi
           exit $code
+
+      - name: Push error log
+        if: failure()
+        working-directory: .
+        run: |
+          mkdir -p /tmp/l
+          tail -n 250 manager/gradle.log > /tmp/l/gradle.log 2>&1 || echo "no log" > /tmp/l/gradle.log
+          git config user.name ci
+          git config user.email ci@example.com
+          git checkout --orphan build-logs-${{ matrix.spoofed }}
+          git rm -rf . -q || true
+          cp /tmp/l/gradle.log ./gradle.log
+          git add gradle.log
+          git commit -q -m "gradle log"
+          git push -f origin build-logs-${{ matrix.spoofed }}
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
