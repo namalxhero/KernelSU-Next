@@ -68,8 +68,7 @@ import com.rifsxd.ksunext.ui.component.XBoomMood
 import com.rifsxd.ksunext.ui.component.glass
 import com.rifsxd.ksunext.ui.util.CheckResult
 import com.rifsxd.ksunext.ui.util.RootTimer
-import com.rifsxd.ksunext.ui.util.RootXIcon
-import com.rifsxd.ksunext.ui.util.RootXPin
+import com.rifsxd.ksunext.ui.util.RootPreset
 import com.rifsxd.ksunext.ui.util.RootXPresets
 import com.rifsxd.ksunext.ui.util.SelfCheck
 import com.rifsxd.ksunext.ui.util.reboot
@@ -105,9 +104,6 @@ fun ToolsScreen(navigator: DestinationsNavigator) {
             RootTimerSection()
             PresetsSection()
             SafeModeSection()
-            LogSection()
-            SecuritySection()
-            ReportSection()
         }
     }
 }
@@ -205,6 +201,7 @@ private fun RootTimerSection() {
     var startH by remember { mutableIntStateOf(22) }
     var endH by remember { mutableIntStateOf(6) }
     var message by remember { mutableStateOf("") }
+    var preset by remember { mutableStateOf(RootPreset.Full) }
 
     LaunchedEffect(Unit) {
         if (Natives.isManager && suVm.appList.isEmpty()) suVm.fetchAppList()
@@ -223,13 +220,19 @@ private fun RootTimerSection() {
                 }
             }
             val app = selected
-            Text("Give root for:", style = MaterialTheme.typography.labelLarge)
+            Text("Profile:", style = MaterialTheme.typography.labelLarge)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                RootPreset.values().forEach { pr ->
+                    FilterChip(selected = preset == pr, onClick = { preset = pr }, label = { Text(pr.label) })
+                }
+            }
+            Text("Apply it for:", style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("10 min" to 10, "1 hour" to 60, "Today" to RootTimer.minutesUntilMidnight()).forEach { (t, m) ->
                     OutlinedButton(enabled = app != null, onClick = {
                         if (app != null) {
-                            val ok = RootTimer.grantTemporary(context, app.packageName, app.uid, m)
-                            message = if (ok) "Root given to ${app.label} for $t" else "Could not change root"
+                            val ok = RootTimer.grantTemporary(context, app.packageName, app.uid, m, preset)
+                            message = if (ok) "${preset.label} set for ${app.label} for $t" else "Could not change the profile"
                             tick++
                         }
                     }) { Text(t) }
@@ -313,189 +316,42 @@ private fun SafeModeSection() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val modVm: ModuleViewModel = viewModel()
+    var on by remember { mutableStateOf(RootXPresets.safeModeOn(context)) }
     var showReboot by remember { mutableStateOf(false) }
-    var confirmDisable by remember { mutableStateOf(false) }
-    var info by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) { if (Natives.isManager) modVm.fetchModuleList() }
 
-    ToolCard("Safe mode", "Get out of a bad module quickly") {
+    ToolCard("Safe mode", "Switch every module off until you turn it back on") {
         if (!Natives.isManager) {
             Text("Needs RootX to be active first.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
-            Button(onClick = {
-                RootXPresets.saveSnapshot(context, modVm.moduleList.filter { it.enabled }.map { it.id })
-                info = "Snapshot saved"
-            }) { Text("Save a safe snapshot now") }
-            OutlinedButton(onClick = {
-                val snap = RootXPresets.loadSnapshot(context)
-                if (snap == null) {
-                    info = "No snapshot saved yet"
-                } else {
-                    scope.launch {
-                        withContext(Dispatchers.IO) { modVm.moduleList.forEach { toggleModule(it.id, it.id in snap) } }
-                        showReboot = true
-                    }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(if (on) "Safe mode is ON" else "Safe mode is off", fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (on) "All modules stay off. Turn this off to bring them back." else "Turning it on switches all modules off.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-            }) { Text("Restore the snapshot") }
-            OutlinedButton(onClick = { confirmDisable = true }) { Text("Disable all modules") }
-            if (info.isNotEmpty()) Text(info, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
-        }
-    }
-    if (confirmDisable) {
-        AlertDialog(
-            onDismissRequest = { confirmDisable = false },
-            title = { Text("Disable all modules?") },
-            text = { Text("Every module will be switched off after the next reboot.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmDisable = false
+                Switch(checked = on, onCheckedChange = { want ->
                     scope.launch {
-                        withContext(Dispatchers.IO) { modVm.moduleList.forEach { toggleModule(it.id, false) } }
+                        if (want) {
+                            RootXPresets.saveSnapshot(context, modVm.moduleList.filter { it.enabled }.map { it.id })
+                            withContext(Dispatchers.IO) { modVm.moduleList.forEach { toggleModule(it.id, false) } }
+                            RootXPresets.setSafeMode(context, true)
+                            on = true
+                        } else {
+                            val snap = RootXPresets.loadSnapshot(context) ?: emptyList()
+                            withContext(Dispatchers.IO) { modVm.moduleList.forEach { toggleModule(it.id, it.id in snap) } }
+                            RootXPresets.setSafeMode(context, false)
+                            on = false
+                        }
                         showReboot = true
                     }
-                }) { Text("Disable all") }
-            },
-            dismissButton = { TextButton(onClick = { confirmDisable = false }) { Text("Cancel") } }
-        )
+                })
+            }
+        }
     }
     RebootDialog(showReboot) { showReboot = false }
-}
-
-// ---------------------------------------------------------------------------
-
-@Composable
-private fun LogSection() {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var source by remember { mutableIntStateOf(0) }
-    var filter by remember { mutableStateOf("") }
-    var text by remember { mutableStateOf("") }
-    var loading by remember { mutableStateOf(false) }
-
-    ToolCard("Log viewer", "Read system and kernel logs") {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("Logcat", "Kernel").forEachIndexed { i, s ->
-                FilterChip(selected = source == i, onClick = { source = i }, label = { Text(s) })
-            }
-        }
-        OutlinedTextField(value = filter, onValueChange = { filter = it }, label = { Text("Filter (optional)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-        Button(onClick = {
-            scope.launch {
-                loading = true
-                text = withContext(Dispatchers.IO) {
-                    val cmd = if (source == 0) "logcat -d -t 800" else "dmesg | tail -n 600"
-                    val lines = runCatching { com.topjohnwu.superuser.Shell.cmd(cmd).exec().out }.getOrDefault(emptyList())
-                    val f = filter.trim()
-                    (if (f.isEmpty()) lines else lines.filter { it.contains(f, ignoreCase = true) }).takeLast(300).joinToString("\n")
-                }
-                loading = false
-            }
-        }) { Text(if (loading) "Reading..." else "Read log") }
-        if (text.isNotEmpty()) {
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 320.dp)
-                    .background(Color(0x66000000), RoundedCornerShape(12.dp))
-                    .padding(10.dp)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                Text(text, fontFamily = FontFamily.Monospace, fontSize = 10.sp)
-            }
-            TextButton(onClick = {
-                val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                cm.setPrimaryClip(ClipData.newPlainText("RootX log", text))
-            }) { Text("Copy log") }
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-
-@Composable
-private fun SecuritySection() {
-    val context = LocalContext.current
-    var hasPin by remember { mutableStateOf(RootXPin.has(context)) }
-    var showPinDialog by remember { mutableStateOf(false) }
-    var hidden by remember { mutableStateOf(RootXIcon.isHidden(context)) }
-    var confirmHide by remember { mutableStateOf(false) }
-    var pin1 by remember { mutableStateOf("") }
-    var pin2 by remember { mutableStateOf("") }
-    var pinError by remember { mutableStateOf("") }
-
-    ToolCard("Security", "PIN lock and a hidden app icon") {
-        Text(if (hasPin) "PIN lock is on" else "PIN lock is off", fontWeight = FontWeight.SemiBold)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { pin1 = ""; pin2 = ""; pinError = ""; showPinDialog = true }) { Text(if (hasPin) "Change PIN" else "Set PIN") }
-            if (hasPin) OutlinedButton(onClick = { RootXPin.clear(context); hasPin = false }) { Text("Remove PIN") }
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("Hide app icon", fontWeight = FontWeight.SemiBold)
-                Text("Open it later by dialing *#*#7668#*#*", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Switch(checked = hidden, onCheckedChange = { want ->
-                if (want) confirmHide = true else { RootXIcon.setHidden(context, false); hidden = false }
-            })
-        }
-    }
-    if (confirmHide) {
-        AlertDialog(
-            onDismissRequest = { confirmHide = false },
-            title = { Text("Hide the app icon?") },
-            text = { Text("The icon disappears from the launcher. To open RootX, dial *#*#7668#*#* in the phone app. This code may not work on every phone, so test it before relying on it.") },
-            confirmButton = { TextButton(onClick = { confirmHide = false; RootXIcon.setHidden(context, true); hidden = true }) { Text("Hide") } },
-            dismissButton = { TextButton(onClick = { confirmHide = false }) { Text("Cancel") } }
-        )
-    }
-    if (showPinDialog) {
-        AlertDialog(
-            onDismissRequest = { showPinDialog = false },
-            title = { Text("Set a PIN") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = pin1, onValueChange = { pin1 = it.filter { c -> c.isDigit() }.take(8) }, label = { Text("PIN (4 to 8 digits)") }, singleLine = true, visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword))
-                    OutlinedTextField(value = pin2, onValueChange = { pin2 = it.filter { c -> c.isDigit() }.take(8) }, label = { Text("Repeat PIN") }, singleLine = true, visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword))
-                    if (pinError.isNotEmpty()) Text(pinError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    when {
-                        pin1.length < 4 -> pinError = "Use at least 4 digits"
-                        pin1 != pin2 -> pinError = "The PINs do not match"
-                        else -> { RootXPin.set(context, pin1); hasPin = true; showPinDialog = false }
-                    }
-                }) { Text("Save") }
-            },
-            dismissButton = { TextButton(onClick = { showPinDialog = false }) { Text("Cancel") } }
-        )
-    }
-}
-
-// ---------------------------------------------------------------------------
-
-@Composable
-private fun ReportSection() {
-    val context = LocalContext.current
-    val modVm: ModuleViewModel = viewModel()
-    LaunchedEffect(Unit) { if (Natives.isManager) modVm.fetchModuleList() }
-    ToolCard("Debug report", "Share device and module info when something breaks") {
-        Button(onClick = {
-            val sb = StringBuilder()
-            sb.appendLine("RootX debug report")
-            sb.appendLine("Manager: ${getManagerVersion(context).first}")
-            sb.appendLine("Kernel: ${System.getProperty("os.version")}")
-            sb.appendLine("Android: ${android.os.Build.VERSION.RELEASE} (${android.os.Build.VERSION.SDK_INT})")
-            sb.appendLine("Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
-            sb.appendLine("Recognized by kernel: ${Natives.isManager}")
-            sb.appendLine("Modules:")
-            if (Natives.isManager) {
-                modVm.moduleList.forEach { sb.appendLine("  ${it.id} ${it.version} enabled=${it.enabled}") }
-            }
-            val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, sb.toString())
-            context.startActivity(Intent.createChooser(send, "Share report").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-        }) { Text("Share debug report") }
-    }
 }

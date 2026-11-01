@@ -153,6 +153,9 @@ object RootXPresets {
         prefs(c).edit().putString("snapshot", JSONArray(ids).toString()).apply()
     }
 
+    fun safeModeOn(c: Context): Boolean = prefs(c).getBoolean("safe_on", false)
+    fun setSafeMode(c: Context, on: Boolean) { prefs(c).edit().putBoolean("safe_on", on).apply() }
+
     fun loadSnapshot(c: Context): List<String>? = runCatching {
         val s = prefs(c).getString("snapshot", null) ?: return null
         val a = JSONArray(s)
@@ -177,40 +180,24 @@ object RootXPin {
 }
 
 // ---------------------------------------------------------------------------
-// Launcher icon hide + dial code
-// ---------------------------------------------------------------------------
-
-object RootXIcon {
-    private fun cn(c: Context) = ComponentName(c.packageName, "com.rifsxd.ksunext.LauncherAlias")
-
-    fun isHidden(c: Context): Boolean = runCatching {
-        c.packageManager.getComponentEnabledSetting(cn(c)) == PackageManager.COMPONENT_ENABLED_STATE_DISABLED
-    }.getOrDefault(false)
-
-    fun setHidden(c: Context, hidden: Boolean) {
-        runCatching {
-            c.packageManager.setComponentEnabledSetting(
-                cn(c),
-                if (hidden) PackageManager.COMPONENT_ENABLED_STATE_DISABLED else PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-                PackageManager.DONT_KILL_APP
-            )
-        }
-    }
-}
-
-class SecretCodeReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
-        val launch = Intent(context, com.rifsxd.ksunext.ui.MainActivity::class.java)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(launch)
-    }
-}
-
-// ---------------------------------------------------------------------------
 // Temporary and scheduled root
 // ---------------------------------------------------------------------------
 
-data class TempGrant(val pkg: String, val uid: Int, val until: Long)
+enum class RootPreset(val label: String) {
+    Full("Full root"),
+    Hidden("Hidden root"),
+    Limited("Limited")
+}
+
+data class TempGrant(
+    val pkg: String,
+    val uid: Int,
+    val until: Long,
+    val oAllow: Boolean = false,
+    val oUmount: Boolean = true,
+    val oRootDef: Boolean = true,
+    val oNonRootDef: Boolean = true
+)
 data class RootWindow(val pkg: String, val uid: Int, val startHour: Int, val endHour: Int)
 
 object RootTimer {
@@ -227,12 +214,23 @@ object RootTimer {
 
     fun listTemps(c: Context): List<TempGrant> = runCatching {
         val a = JSONArray(prefs(c).getString("temps", "[]") ?: "[]")
-        (0 until a.length()).map { val o = a.getJSONObject(it); TempGrant(o.getString("pkg"), o.getInt("uid"), o.getLong("until")) }
+        (0 until a.length()).map {
+            val o = a.getJSONObject(it)
+            TempGrant(
+                o.getString("pkg"), o.getInt("uid"), o.getLong("until"),
+                o.optBoolean("oa", false), o.optBoolean("ou", true), o.optBoolean("or", true), o.optBoolean("on", true)
+            )
+        }
     }.getOrDefault(emptyList())
 
     private fun saveTemps(c: Context, l: List<TempGrant>) {
         val a = JSONArray()
-        l.forEach { a.put(JSONObject().put("pkg", it.pkg).put("uid", it.uid).put("until", it.until)) }
+        l.forEach {
+            a.put(
+                JSONObject().put("pkg", it.pkg).put("uid", it.uid).put("until", it.until)
+                    .put("oa", it.oAllow).put("ou", it.oUmount).put("or", it.oRootDef).put("on", it.oNonRootDef)
+            )
+        }
         prefs(c).edit().putString("temps", a.toString()).apply()
     }
 
@@ -282,24 +280,51 @@ object RootTimer {
         return ((24 - cal.get(Calendar.HOUR_OF_DAY)) * 60 - cal.get(Calendar.MINUTE)).coerceAtLeast(1)
     }
 
-    fun grantTemporary(c: Context, pkg: String, uid: Int, minutes: Int): Boolean {
-        if (!setRoot(pkg, uid, true)) return false
+    private fun applyPreset(pkg: String, uid: Int, preset: RootPreset): Boolean = runCatching {
+        val cur = Natives.getAppProfile(pkg, uid)
+        val p = when (preset) {
+            RootPreset.Full -> cur.copy(name = pkg, currentUid = uid, allowSu = true, rootUseDefault = true, umountModules = false)
+            RootPreset.Hidden -> cur.copy(name = pkg, currentUid = uid, allowSu = true, rootUseDefault = true, umountModules = true)
+            RootPreset.Limited -> cur.copy(name = pkg, currentUid = uid, allowSu = false, nonRootUseDefault = false, umountModules = true)
+        }
+        Natives.setAppProfile(p)
+    }.getOrDefault(false)
+
+    private fun restore(t: TempGrant) {
+        runCatching {
+            val cur = Natives.getAppProfile(t.pkg, t.uid)
+            Natives.setAppProfile(
+                cur.copy(
+                    name = t.pkg, currentUid = t.uid, allowSu = t.oAllow, umountModules = t.oUmount,
+                    rootUseDefault = t.oRootDef, nonRootUseDefault = t.oNonRootDef
+                )
+            )
+        }
+    }
+
+    fun grantTemporary(c: Context, pkg: String, uid: Int, minutes: Int, preset: RootPreset = RootPreset.Full): Boolean {
+        val orig = runCatching { Natives.getAppProfile(pkg, uid) }.getOrNull()
+        if (!applyPreset(pkg, uid, preset)) return false
         val until = System.currentTimeMillis() + minutes * 60_000L
-        saveTemps(c, listTemps(c).filter { it.pkg != pkg } + TempGrant(pkg, uid, until))
+        val grant = TempGrant(
+            pkg, uid, until,
+            orig?.allowSu ?: false, orig?.umountModules ?: true, orig?.rootUseDefault ?: true, orig?.nonRootUseDefault ?: true
+        )
+        saveTemps(c, listTemps(c).filter { it.pkg != pkg } + grant)
         alarm(c, ACTION_EXPIRE, pkg, until)
         return true
     }
 
     fun revokeNow(c: Context, pkg: String) {
         val t = listTemps(c).firstOrNull { it.pkg == pkg }
-        if (t != null) setRoot(pkg, t.uid, false)
+        if (t != null) restore(t)
         saveTemps(c, listTemps(c).filter { it.pkg != pkg })
         cancel(c, ACTION_EXPIRE, pkg)
     }
 
     fun onExpire(c: Context, pkg: String) {
         val t = listTemps(c).firstOrNull { it.pkg == pkg } ?: return
-        setRoot(pkg, t.uid, false)
+        restore(t)
         saveTemps(c, listTemps(c).filter { it.pkg != pkg })
     }
 

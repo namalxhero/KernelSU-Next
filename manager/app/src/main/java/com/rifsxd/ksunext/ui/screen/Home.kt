@@ -133,7 +133,6 @@ fun HomeScreen(navigator: DestinationsNavigator) {
     } else null
 
     Box(Modifier.fillMaxSize()) {
-    RootXBackdrop()
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
@@ -276,8 +275,6 @@ fun HomeScreen(navigator: DestinationsNavigator) {
             }
 
             InfoCard(autoExpand = developerOptionsEnabled)
-            IssueReportCard()
-            ContributorsCard()
             Spacer(Modifier)
         }
     }
@@ -696,14 +693,15 @@ private fun TopBar(
                     }
                 }
             ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_ksu_next),
-                    contentDescription = null,
+                XBoom(
                     modifier = Modifier
                         .padding(end = 8.dp)
+                        .height(34.dp)
                         .graphicsLayer {
                             rotationZ = rotation
-                        }
+                        },
+                    mood = XBoomMood.Happy,
+                    blink = false
                 )
                 Text(
                     text = stringResource(R.string.app_name),

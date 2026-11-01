@@ -745,7 +745,7 @@ private fun BottomBar(
         animationSpec = if (isDraggingPill) {
             spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
         } else {
-            spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
+            spring(dampingRatio = 0.62f, stiffness = 420f)
         },
         label = "selectedIndex"
     )
@@ -804,12 +804,11 @@ private fun BottomBar(
             val padPx = with(rDensity) { 7.dp.toPx() }
             val mascotW = with(rDensity) { 43.dp.toPx() }
             val rise = with(rDensity) { 58.dp.roundToPx() }
-            val runnerX = ((boxWidthPx - navWidthPx) / 2f + padPx + stepPx * animatedSelectedIndex + (itemPx - mascotW) / 2f).toInt()
             AnimatedVisibility(
                 visible = runnerVisible,
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .offset { IntOffset(runnerX, -rise) },
+                    .offset { IntOffset(((boxWidthPx - navWidthPx) / 2f + padPx + stepPx * animatedSelectedIndex + (itemPx - mascotW) / 2f).toInt(), -rise) },
                 enter = fadeIn() + scaleIn(),
                 exit = fadeOut() + scaleOut()
             ) {
@@ -907,8 +906,8 @@ private fun BottomBar(
                                         val target = (if (isDraggingPill) dragTargetIndex else effectiveSelectedIndex).toFloat()
                                         val mv = kotlin.math.abs(animatedSelectedIndex - target).coerceAtMost(1f)
                                         val base = if (isDraggingPill) 1.1f else 1f
-                                        scaleX = base * (1f + 0.5f * mv)
-                                        scaleY = base * (1f - 0.14f * mv)
+                                        scaleX = base * (1f + 0.3f * mv)
+                                        scaleY = base * (1f - 0.08f * mv)
                                     },
                                 contentAlignment = Alignment.Center
                             ) {

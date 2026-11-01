@@ -35,6 +35,18 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.text.font.FontWeight as RxFontWeight
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.OutlinedButton
@@ -126,71 +138,181 @@ fun XBoom(
     }
 }
 
-/** Loading indicator: xBooM bobbing in the middle of three orbiting dots. */
+/** Loading indicator: xBooM riding a paper plane through the clouds. */
 @Composable
-fun XLoader(modifier: Modifier = Modifier, label: String = "Loading") {
-    val transition = rememberInfiniteTransition(label = "xloader")
-    val angle by transition.animateFloat(
+fun XLoader(modifier: Modifier = Modifier, label: String = "Flying in...") {
+    val transition = rememberInfiniteTransition(label = "plane")
+    val phase by transition.animateFloat(
         initialValue = 0f,
-        targetValue = 360f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(animation = tween(2600, easing = LinearEasing)),
-        label = "angle"
+        label = "phase"
+    )
+    val bob by transition.animateFloat(
+        initialValue = -1f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1300, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "bobp"
     )
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Box(Modifier.size(170.dp), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(width = 270.dp, height = 200.dp)) {
             Canvas(Modifier.fillMaxSize()) {
-                val r = size.minDimension / 2f - 8.dp.toPx()
-                drawCircle(
-                    color = Color(0x336FDCFF),
-                    radius = r,
-                    style = Stroke(
-                        width = 1.5.dp.toPx(),
-                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 18f))
-                    )
-                )
-                val dots = listOf(
-                    Color(0xFF6FDCFF) to 0f,
-                    Color(0xFFC3A4FF) to 120f,
-                    Color(0xFFFF8FC4) to 240f
-                )
-                dots.forEach { (c, off) ->
-                    val a = Math.toRadians((angle + off).toDouble())
-                    drawCircle(
-                        color = c,
-                        radius = 5.dp.toPx(),
-                        center = Offset(center.x + (cos(a) * r).toFloat(), center.y + (sin(a) * r).toFloat())
-                    )
+                val w = size.width
+                val h = size.height
+                val trail = Path().apply {
+                    moveTo(0f, h * 0.97f)
+                    quadraticBezierTo(w * 0.22f, h * 0.78f, w * 0.48f, h * 0.62f)
                 }
+                drawPath(
+                    path = trail,
+                    color = Color(0xCCFFFFFF),
+                    style = Stroke(
+                        width = 3.dp.toPx(),
+                        cap = StrokeCap.Round,
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(2f, 22f), -phase * 24f)
+                    )
+                )
+                val cloudY = listOf(0.16f, 0.46f, 0.84f)
+                for (k in 0..2) {
+                    val base = (phase + k / 3f) % 1f
+                    val x = w - base * (w + 60.dp.toPx())
+                    val y = h * cloudY[k]
+                    drawOval(Color(0xE6FFFFFF), Offset(x, y), Size(54.dp.toPx(), 13.dp.toPx()))
+                    drawOval(Color(0xE6FFFFFF), Offset(x + 14.dp.toPx(), y - 6.dp.toPx()), Size(30.dp.toPx(), 15.dp.toPx()))
+                }
+                withTransform({
+                    translate(left = w * 0.46f, top = h * 0.62f + bob * 5.dp.toPx())
+                    rotate(degrees = -14f + bob * 2f, pivot = Offset.Zero)
+                }) {
+                    val wing = Path().apply {
+                        moveTo(0f, 22.dp.toPx())
+                        lineTo(112.dp.toPx(), 0f)
+                        lineTo(46.dp.toPx(), 42.dp.toPx())
+                        close()
+                    }
+                    drawPath(wing, Color(0xFFFFFFFF))
+                    val fold = Path().apply {
+                        moveTo(46.dp.toPx(), 42.dp.toPx())
+                        lineTo(112.dp.toPx(), 0f)
+                        lineTo(30.dp.toPx(), 64.dp.toPx())
+                        close()
+                    }
+                    drawPath(fold, Color(0xFFBCD2F5))
+                    val shade = Path().apply {
+                        moveTo(46.dp.toPx(), 42.dp.toPx())
+                        lineTo(30.dp.toPx(), 64.dp.toPx())
+                        lineTo(38.dp.toPx(), 36.dp.toPx())
+                        close()
+                    }
+                    drawPath(shade, Color(0xFF98B4E6))
+                }
+                val sparkle = Color(0xFFFFFFFF)
+                drawCircle(sparkle.copy(alpha = 0.5f + 0.5f * kotlin.math.abs(bob)), 3.dp.toPx(), Offset(w * 0.1f, h * 0.35f))
+                drawCircle(Color(0xFFFFD1F0).copy(alpha = 1f - 0.5f * kotlin.math.abs(bob)), 2.5.dp.toPx(), Offset(w * 0.9f, h * 0.7f))
             }
-            XBoom(Modifier.height(104.dp), mood = XBoomMood.Open, bob = true)
+            XBoom(
+                Modifier
+                    .align(Alignment.TopStart)
+                    .offset(x = 112.dp, y = (36 + bob * 4).dp)
+                    .height(66.dp),
+                mood = XBoomMood.Happy,
+                blink = false
+            )
         }
-        Spacer(Modifier.height(10.dp))
-        Text(label, color = Color(0xFFBFE9F7), fontSize = 13.sp)
+        Spacer(Modifier.height(8.dp))
+        Text(label, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
     }
 }
 
-/** Black backdrop with soft colored glows, so glass surfaces have something to refract. */
+/** The five anime backgrounds. The chosen one is remembered and drawn behind the whole app. */
+object RootXBg {
+    val drawables = listOf(R.drawable.bg_fireworks, R.drawable.bg_ocean, R.drawable.bg_snow, R.drawable.bg_field, R.drawable.bg_fuji)
+    val names = listOf("Fireworks", "Ocean", "Snow", "Field", "Fuji")
+    private val scrims = listOf(0.25f, 0.3f, 0.3f, 0.5f, 0.35f)
+    var index by mutableIntStateOf(0)
+    private var loaded = false
+
+    fun scrim(): Float = scrims[index.coerceIn(0, scrims.size - 1)]
+
+    fun load(c: android.content.Context) {
+        if (!loaded) {
+            index = c.getSharedPreferences("rootx_ui", android.content.Context.MODE_PRIVATE).getInt("bg", 0).coerceIn(0, drawables.size - 1)
+            loaded = true
+        }
+    }
+
+    fun set(c: android.content.Context, i: Int) {
+        index = i
+        c.getSharedPreferences("rootx_ui", android.content.Context.MODE_PRIVATE).edit().putInt("bg", i).apply()
+    }
+}
+
 @Composable
 fun RootXBackdrop(modifier: Modifier = Modifier) {
-    Canvas(modifier.fillMaxSize()) {
-        drawRect(Brush.verticalGradient(listOf(Color(0xFF0B1033), Color(0xFF121D52), Color(0xFF0A0F2C))))
-        val w = size.width
-        val h = size.height
-        fun glow(c: Color, cx: Float, cy: Float, r: Float) {
-            drawCircle(
-                brush = Brush.radialGradient(listOf(c, Color.Transparent), center = Offset(cx, cy), radius = r),
-                radius = r,
-                center = Offset(cx, cy)
+    val context = LocalContext.current
+    RootXBg.load(context)
+    Box(modifier.fillMaxSize().background(Color(0xFF0B1033))) {
+        Crossfade(targetState = RootXBg.index, animationSpec = tween(500), label = "bg") { i ->
+            Image(
+                painter = painterResource(RootXBg.drawables[i]),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
             )
         }
-        glow(Color(0x8A1AA7E8), w * 0.95f, h * 0.08f, w * 0.8f)
-        glow(Color(0x787A4DFF), w * 0.0f, h * 0.45f, w * 0.75f)
-        glow(Color(0x55FF5FA8), w * 0.95f, h * 0.78f, w * 0.65f)
-        glow(Color(0x3300E5C0), w * 0.05f, h * 0.95f, w * 0.6f)
+        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = RootXBg.scrim())))
+    }
+}
+
+/** Five liquid-glass bubbles for picking the app background (lives in Settings > Customization). */
+@Composable
+fun RootXBackgroundPicker() {
+    val context = LocalContext.current
+    RootXBg.load(context)
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
+        Text("Background", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text("Pick a scene for the whole app", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(14.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
+            RootXBg.drawables.forEachIndexed { i, res ->
+                val sel = RootXBg.index == i
+                val bubble by animateDpAsState(if (sel) 64.dp else 54.dp, label = "bubble")
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                        RootXBg.set(context, i)
+                    }
+                ) {
+                    Box(
+                        Modifier
+                            .size(bubble)
+                            .clip(CircleShape)
+                            .border(if (sel) 2.dp else 1.dp, if (sel) RootXCyan else Color(0x80FFFFFF), CircleShape)
+                    ) {
+                        Image(painterResource(res), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                        Box(
+                            Modifier.fillMaxSize().background(
+                                Brush.radialGradient(listOf(Color(0x99FFFFFF), Color.Transparent), center = Offset(24f, 20f), radius = 70f)
+                            )
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        RootXBg.names[i],
+                        fontSize = 10.sp,
+                        color = if (sel) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal
+                    )
+                }
+            }
+        }
     }
 }
 

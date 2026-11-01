@@ -162,52 +162,7 @@ fun CustomizationScreen(navigator: DestinationsNavigator) {
                 }
             }
 
-            var enableAmoled by rememberSaveable {
-                mutableStateOf(
-                    prefs.getBoolean("enable_amoled", false)
-                )
-            }
-            if (isSystemInDarkTheme()) {
-                val activity = LocalContext.current as? MainActivity
-                SwitchItem(
-                    icon = Icons.Filled.Contrast,
-                    title = stringResource(id = R.string.settings_amoled_mode),
-                    summary = stringResource(id = R.string.settings_amoled_mode_summary),
-                    checked = enableAmoled
-                ) { checked ->
-                    activity?.setAmoledMode(checked)
-                    enableAmoled = checked
-                }
-            }
-
-            var enableNavBar by rememberSaveable {
-                mutableStateOf(
-                    prefs.getBoolean("enable_navbar", true)
-                )
-            }
-            val activity = LocalContext.current as? MainActivity
-            SwitchItem(
-                icon = Icons.Filled.Dock,
-                title = stringResource(id = R.string.settings_navbar),
-                summary = stringResource(id = R.string.settings_navbar_summary),
-                checked = enableNavBar
-            ) { checked ->
-                activity?.setNavBarEnabled(checked)
-                enableNavBar = checked
-            }
-
-            var enableStartupAnimation by rememberSaveable {
-                mutableStateOf(prefs.getBoolean("enable_startup_animation", true))
-            }
-            SwitchItem(
-                icon = Icons.Filled.Animation,
-                title = stringResource(id = R.string.settings_startup_animation),
-                summary = stringResource(id = R.string.settings_startup_animation_summary),
-                checked = enableStartupAnimation
-            ) { checked ->
-                prefs.edit { putBoolean("enable_startup_animation", checked) }
-                enableStartupAnimation = checked
-            }
+            com.rifsxd.ksunext.ui.component.RootXBackgroundPicker()
         }
     }
 

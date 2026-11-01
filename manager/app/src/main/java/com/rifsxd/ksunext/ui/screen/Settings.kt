@@ -818,22 +818,6 @@ private fun AppSettingsCard(
             modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            var checkUpdate by rememberSaveable {
-                mutableStateOf(prefs.getBoolean("check_update", true))
-            }
-
-            SwitchItem(
-                icon = Icons.Filled.Update,
-                title = stringResource(R.string.settings_check_update),
-                summary = stringResource(R.string.settings_check_update_summary),
-                checked = checkUpdate,
-                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)),
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-            ) {
-                prefs.edit { putBoolean("check_update", it) }
-                checkUpdate = it
-            }
-
             var requireBiometric by rememberSaveable {
                 mutableStateOf(prefs.getBoolean("enable_biometric_lock", false))
             }
@@ -1018,6 +1002,8 @@ private fun AppSettingsCard(
                     )
                 }
             )
+
+            RootXSettingsSection()
         }
     }
 }
