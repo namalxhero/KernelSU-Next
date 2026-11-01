@@ -2,6 +2,7 @@ package com.rifsxd.ksunext.ui.util
 
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -145,9 +146,16 @@ object KernelUpdater {
 
     /** "0x<cert size>:<sha256 of cert>" of THIS app, the exact entry the kernel keeps in its manager list. */
     fun ownSignatureEntry(context: Context): String? {
-        val pi = context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
-        val sig = pi.signingInfo?.apkContentsSigners?.firstOrNull() ?: return null
-        val der = sig.toByteArray()
+        val pm = context.packageManager
+        val der: ByteArray = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val pi = pm.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+            pi.signingInfo?.apkContentsSigners?.firstOrNull()?.toByteArray()
+        } else {
+            @Suppress("DEPRECATION")
+            val pi = pm.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES)
+            @Suppress("DEPRECATION")
+            pi.signatures?.firstOrNull()?.toByteArray()
+        } ?: return null
         val hash = MessageDigest.getInstance("SHA-256").digest(der).joinToString("") { "%02x".format(it) }
         return "0x%x:%s".format(der.size, hash)
     }
