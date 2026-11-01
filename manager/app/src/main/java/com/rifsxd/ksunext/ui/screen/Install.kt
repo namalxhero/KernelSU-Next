@@ -75,9 +75,8 @@ fun InstallScreen(navigator: DestinationsNavigator) {
         mutableStateOf<LkmSelection>(LkmSelection.KmiNone)
     }
 
-    var advancedOptionsShown by rememberSaveable { mutableStateOf(false) }
-    var allowShell by rememberSaveable { mutableStateOf(false) }
-    var enableAdb by rememberSaveable { mutableStateOf(false) }
+    val allowShell = false
+    val enableAdb = false
 
     val context = LocalContext.current
 
@@ -196,42 +195,6 @@ fun InstallScreen(navigator: DestinationsNavigator) {
                 }
             ) { method ->
                 installMethod = method
-            }
-
-            val rotationState by animateFloatAsState(
-                targetValue = if (advancedOptionsShown) 180f else 0f,
-                label = "RotationAnimation"
-            )
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.advanced_options)) },
-                trailingContent = {
-                    Icon(
-                        imageVector = Icons.Filled.ExpandMore,
-                        contentDescription = stringResource(R.string.expand),
-                        modifier = Modifier.graphicsLayer { rotationZ = rotationState }
-                    )
-                },
-                modifier = Modifier.clickable { advancedOptionsShown = !advancedOptionsShown }
-            )
-            AnimatedVisibility(
-                visible = advancedOptionsShown,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Column {
-                    SwitchItem(
-                        title = stringResource(id = R.string.allow_shell),
-                        summary = stringResource(id = R.string.allow_shell_summary),
-                        checked = allowShell,
-                        onCheckedChange = { allowShell = it }
-                    )
-                    SwitchItem(
-                        title = stringResource(id = R.string.enable_adb),
-                        summary = stringResource(id = R.string.enable_adb_summary),
-                        checked = enableAdb,
-                        onCheckedChange = { enableAdb = it }
-                    )
-                }
             }
 
             Column(

@@ -107,7 +107,6 @@ fun ToolsScreen(navigator: DestinationsNavigator) {
             SelfCheckSection()
             RootTimerSection()
             PresetsSection()
-            SafeModeSection()
             KernelUpdateSection(navigator)
         }
     }
@@ -138,7 +137,7 @@ private fun ToolCard(title: String, subtitle: String, content: @Composable Colum
 }
 
 @Composable
-private fun RebootDialog(show: Boolean, onDismiss: () -> Unit) {
+internal fun RebootDialog(show: Boolean, onDismiss: () -> Unit) {
     if (!show) return
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -317,51 +316,6 @@ private fun PresetsSection() {
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun SafeModeSection() {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val modVm: ModuleViewModel = viewModel()
-    var on by remember { mutableStateOf(RootXPresets.safeModeOn(context)) }
-    var showReboot by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) { if (Natives.isManager) modVm.fetchModuleList() }
-
-    ToolCard("Safe mode", "Switch every module off until you turn it back on") {
-        if (!Natives.isManager) {
-            Text("Needs RootX to be active first.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        } else {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(if (on) "Safe mode is ON" else "Safe mode is off", fontWeight = FontWeight.SemiBold)
-                    Text(
-                        if (on) "All modules stay off. Turn this off to bring them back." else "Turning it on switches all modules off.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Switch(checked = on, onCheckedChange = { want ->
-                    scope.launch {
-                        if (want) {
-                            RootXPresets.saveSnapshot(context, modVm.moduleList.filter { it.enabled }.map { it.id })
-                            withContext(Dispatchers.IO) { modVm.moduleList.forEach { toggleModule(it.id, false) } }
-                            RootXPresets.setSafeMode(context, true)
-                            on = true
-                        } else {
-                            val snap = RootXPresets.loadSnapshot(context) ?: emptyList()
-                            withContext(Dispatchers.IO) { modVm.moduleList.forEach { toggleModule(it.id, it.id in snap) } }
-                            RootXPresets.setSafeMode(context, false)
-                            on = false
-                        }
-                        showReboot = true
-                    }
-                })
-            }
-        }
-    }
-    RebootDialog(showReboot) { showReboot = false }
-}
-
-@Composable
 private fun KernelUpdateSection(navigator: DestinationsNavigator) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -384,10 +338,10 @@ private fun KernelUpdateSection(navigator: DestinationsNavigator) {
                 }
                 status = "Verifying checksum ..."
                 val sha = KernelUpdater.sha256(file)
-                rel.sha256?.let {
-                    if (!it.equals(sha, ignoreCase = true)) {
-                        throw IllegalStateException("Checksum mismatch, the download is corrupted. Not flashing.")
-                    }
+                val expected = rel.sha256
+                    ?: throw IllegalStateException("This release has no published SHA-256 checksum. Not flashing.")
+                if (!expected.equals(sha, ignoreCase = true)) {
+                    throw IllegalStateException("Checksum mismatch, the download is corrupted. Not flashing.")
                 }
                 status = "Checking that this kernel trusts RootX ..."
                 val entry = KernelUpdater.ownSignatureEntry(context)
@@ -445,7 +399,7 @@ private fun KernelUpdateSection(navigator: DestinationsNavigator) {
             }
             if (rel.sha256 == null) {
                 Text(
-                    "This release has no published checksum, so the download cannot be verified.",
+                    "This release has no published checksum, so it cannot be installed.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )

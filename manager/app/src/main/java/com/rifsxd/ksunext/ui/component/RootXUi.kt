@@ -138,96 +138,80 @@ fun XBoom(
     }
 }
 
-/** Loading indicator: xBooM riding a paper plane through the clouds. */
+/** Loading indicator: the RootX orbit (spinning arc, counter-rotating dashed ring, pulsing X). */
 @Composable
-fun XLoader(modifier: Modifier = Modifier, label: String = "Flying in...") {
-    val transition = rememberInfiniteTransition(label = "plane")
-    val phase by transition.animateFloat(
+fun XLoader(modifier: Modifier = Modifier, label: String = "Starting RootX") {
+    val transition = androidx.compose.animation.core.rememberInfiniteTransition(label = "orbit")
+    val spin by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            androidx.compose.animation.core.tween(1300, easing = androidx.compose.animation.core.LinearEasing)
+        ),
+        label = "spin"
+    )
+    val ring by transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(animation = tween(2600, easing = LinearEasing)),
-        label = "phase"
-    )
-    val bob by transition.animateFloat(
-        initialValue = -1f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1300, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            androidx.compose.animation.core.tween(3200, easing = androidx.compose.animation.core.LinearEasing)
         ),
-        label = "bobp"
+        label = "ring"
     )
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Box(Modifier.size(width = 270.dp, height = 200.dp)) {
-            Canvas(Modifier.fillMaxSize()) {
-                val w = size.width
-                val h = size.height
-                val trail = Path().apply {
-                    moveTo(0f, h * 0.97f)
-                    quadraticBezierTo(w * 0.22f, h * 0.78f, w * 0.48f, h * 0.62f)
-                }
-                drawPath(
-                    path = trail,
-                    color = Color(0xCCFFFFFF),
-                    style = Stroke(
-                        width = 3.dp.toPx(),
-                        cap = StrokeCap.Round,
-                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(2f, 22f), -phase * 24f)
+    val pulse by transition.animateFloat(
+        initialValue = 0.55f,
+        targetValue = 1f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            androidx.compose.animation.core.tween(900),
+            androidx.compose.animation.core.RepeatMode.Reverse
+        ),
+        label = "pulse"
+    )
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        androidx.compose.foundation.Canvas(Modifier.size(96.dp)) {
+            val c = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
+            val stroke = 5.dp.toPx()
+            val r = size.minDimension / 2f - stroke
+            drawCircle(
+                color = Color(0xFF1E2635),
+                radius = r,
+                center = c,
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = stroke)
+            )
+            val period = 14.dp.toPx()
+            drawCircle(
+                color = Color(0xFF2A3446),
+                radius = r * 0.74f,
+                center = c,
+                style = androidx.compose.ui.graphics.drawscope.Stroke(
+                    width = 2.dp.toPx(),
+                    pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(
+                        floatArrayOf(4.dp.toPx(), 10.dp.toPx()),
+                        -ring * period * 4f
                     )
                 )
-                val cloudY = listOf(0.16f, 0.46f, 0.84f)
-                for (k in 0..2) {
-                    val base = (phase + k / 3f) % 1f
-                    val x = w - base * (w + 60.dp.toPx())
-                    val y = h * cloudY[k]
-                    drawOval(Color(0xE6FFFFFF), Offset(x, y), Size(54.dp.toPx(), 13.dp.toPx()))
-                    drawOval(Color(0xE6FFFFFF), Offset(x + 14.dp.toPx(), y - 6.dp.toPx()), Size(30.dp.toPx(), 15.dp.toPx()))
-                }
-                withTransform({
-                    translate(left = w * 0.46f, top = h * 0.62f + bob * 5.dp.toPx())
-                    rotate(degrees = -14f + bob * 2f, pivot = Offset.Zero)
-                }) {
-                    val wing = Path().apply {
-                        moveTo(0f, 22.dp.toPx())
-                        lineTo(112.dp.toPx(), 0f)
-                        lineTo(46.dp.toPx(), 42.dp.toPx())
-                        close()
-                    }
-                    drawPath(wing, Color(0xFFFFFFFF))
-                    val fold = Path().apply {
-                        moveTo(46.dp.toPx(), 42.dp.toPx())
-                        lineTo(112.dp.toPx(), 0f)
-                        lineTo(30.dp.toPx(), 64.dp.toPx())
-                        close()
-                    }
-                    drawPath(fold, Color(0xFFBCD2F5))
-                    val shade = Path().apply {
-                        moveTo(46.dp.toPx(), 42.dp.toPx())
-                        lineTo(30.dp.toPx(), 64.dp.toPx())
-                        lineTo(38.dp.toPx(), 36.dp.toPx())
-                        close()
-                    }
-                    drawPath(shade, Color(0xFF98B4E6))
-                }
-                val sparkle = Color(0xFFFFFFFF)
-                drawCircle(sparkle.copy(alpha = 0.5f + 0.5f * kotlin.math.abs(bob)), 3.dp.toPx(), Offset(w * 0.1f, h * 0.35f))
-                drawCircle(Color(0xFFFFD1F0).copy(alpha = 1f - 0.5f * kotlin.math.abs(bob)), 2.5.dp.toPx(), Offset(w * 0.9f, h * 0.7f))
-            }
-            XBoom(
-                Modifier
-                    .align(Alignment.TopStart)
-                    .offset(x = 112.dp, y = (36 + bob * 4).dp)
-                    .height(66.dp),
-                mood = XBoomMood.Happy,
-                blink = false
             )
+            drawArc(
+                color = RootXCyan,
+                startAngle = spin,
+                sweepAngle = 100f,
+                useCenter = false,
+                topLeft = androidx.compose.ui.geometry.Offset(c.x - r, c.y - r),
+                size = androidx.compose.ui.geometry.Size(r * 2f, r * 2f),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(
+                    width = stroke,
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round
+                )
+            )
+            val k = r * 0.34f
+            val xc = RootXCyan.copy(alpha = pulse)
+            drawLine(xc, androidx.compose.ui.geometry.Offset(c.x - k, c.y - k), androidx.compose.ui.geometry.Offset(c.x + k, c.y + k),
+                strokeWidth = stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            drawLine(xc, androidx.compose.ui.geometry.Offset(c.x + k, c.y - k), androidx.compose.ui.geometry.Offset(c.x - k, c.y + k),
+                strokeWidth = stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round)
         }
-        Spacer(Modifier.height(8.dp))
-        Text(label, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(18.dp))
+        Text(label, color = Color(0xFF8B96A8), fontSize = 14.sp, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -384,13 +368,20 @@ fun RootXPinOverlay() {
     var entered by remember { mutableStateOf("") }
     var wrong by remember { mutableStateOf(false) }
     val need = RootXPin.length(context)
+    var lockMs by remember { mutableStateOf(RootXPin.lockedForMs(context)) }
+    androidx.compose.runtime.LaunchedEffect(lockMs > 0L) {
+        while (lockMs > 0L) {
+            kotlinx.coroutines.delay(500)
+            lockMs = RootXPin.lockedForMs(context)
+        }
+    }
 
     fun press(d: String) {
-        if (entered.length >= need) return
+        if (lockMs > 0L || entered.length >= need) return
         entered += d
         wrong = false
         if (entered.length == need) {
-            if (RootXPin.check(context, entered)) unlocked = true else { wrong = true; entered = "" }
+            if (RootXPin.check(context, entered)) unlocked = true else { wrong = true; entered = ""; lockMs = RootXPin.lockedForMs(context) }
         }
     }
 
@@ -408,7 +399,7 @@ fun RootXPinOverlay() {
         ) {
             XBoom(Modifier.height(110.dp), mood = if (wrong) XBoomMood.Scared else XBoomMood.Open)
             Spacer(Modifier.height(14.dp))
-            Text(if (wrong) "Wrong PIN" else "Enter your PIN", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            Text(if (lockMs > 0L) "Too many attempts. Try again in ${lockMs / 1000 + 1}s" else if (wrong) "Wrong PIN" else "Enter your PIN", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 repeat(need) { i ->
@@ -434,6 +425,7 @@ fun RootXPinOverlay() {
                                 }
                             },
                             modifier = Modifier.size(72.dp),
+                            enabled = lockMs == 0L,
                             shape = CircleShape,
                             contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
                         ) { Text(k, fontSize = 22.sp, color = Color.White) }

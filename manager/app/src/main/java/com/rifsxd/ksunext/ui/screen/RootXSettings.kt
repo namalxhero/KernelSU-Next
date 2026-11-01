@@ -1,5 +1,14 @@
 package com.rifsxd.ksunext.ui.screen
 
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Security
+import com.rifsxd.ksunext.ui.util.toggleModule
+import com.rifsxd.ksunext.ui.util.RootXPresets
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.Switch
 import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -48,6 +57,12 @@ fun RootXSettingsSection() {
     var pin1 by remember { mutableStateOf("") }
     var pin2 by remember { mutableStateOf("") }
     var pinError by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+    var safeOn by remember { mutableStateOf(RootXPresets.safeModeOn(context)) }
+    var showReboot by remember { mutableStateOf(false) }
+    var secureOn by remember {
+        mutableStateOf(context.getSharedPreferences("rootx_security", android.content.Context.MODE_PRIVATE).getBoolean("secure_screen", true))
+    }
 
     LaunchedEffect(Unit) { if (Natives.isManager) modVm.fetchModuleList() }
 
@@ -69,6 +84,62 @@ fun RootXSettingsSection() {
             Text("PIN lock", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         },
         supportingContent = { Text(if (hasPin) "On. Tap to change or remove" else "Off. Tap to set a PIN") }
+    )
+
+    ListItem(
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        leadingContent = { Icon(Icons.Filled.Security, null) },
+        headlineContent = {
+            Text("Safe mode", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        },
+        supportingContent = {
+            Text(
+                if (!Natives.isManager) "Needs RootX to be active first"
+                else if (safeOn) "On. All modules are switched off"
+                else "Off. Turn on to switch every module off"
+            )
+        },
+        trailingContent = {
+            Switch(
+                checked = safeOn,
+                enabled = Natives.isManager,
+                onCheckedChange = { want ->
+                    scope.launch {
+                        if (want) {
+                            RootXPresets.saveSnapshot(context, modVm.moduleList.filter { it.enabled }.map { it.id })
+                            withContext(Dispatchers.IO) { modVm.moduleList.forEach { toggleModule(it.id, false) } }
+                            RootXPresets.setSafeMode(context, true)
+                            safeOn = true
+                        } else {
+                            val snap = RootXPresets.loadSnapshot(context) ?: emptyList()
+                            withContext(Dispatchers.IO) { modVm.moduleList.forEach { toggleModule(it.id, it.id in snap) } }
+                            RootXPresets.setSafeMode(context, false)
+                            safeOn = false
+                        }
+                        showReboot = true
+                    }
+                }
+            )
+        }
+    )
+    RebootDialog(showReboot) { showReboot = false }
+
+    ListItem(
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        leadingContent = { Icon(Icons.Filled.VisibilityOff, null) },
+        headlineContent = {
+            Text("Block screenshots", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        },
+        supportingContent = { Text("Hides RootX from screenshots, screen recording and the recent apps view") },
+        trailingContent = {
+            Switch(
+                checked = secureOn,
+                onCheckedChange = {
+                    secureOn = it
+                    (context as? com.rifsxd.ksunext.ui.MainActivity)?.setSecureScreen(it)
+                }
+            )
+        }
     )
 
     ListItem(

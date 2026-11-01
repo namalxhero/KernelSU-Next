@@ -168,15 +168,68 @@ object RootXPresets {
 // ---------------------------------------------------------------------------
 
 object RootXPin {
+    private const val ITERATIONS = 100_000
     private fun prefs(c: Context) = c.getSharedPreferences("rootx_security", Context.MODE_PRIVATE)
-    private fun hash(pin: String): String =
+
+    private fun legacyHash(pin: String): String =
         MessageDigest.getInstance("SHA-256").digest(("rootx:" + pin).toByteArray()).joinToString("") { "%02x".format(it) }
+
+    private fun pbkdf2(pin: String, salt: ByteArray, iterations: Int): ByteArray {
+        val spec = javax.crypto.spec.PBEKeySpec(pin.toCharArray(), salt, iterations, 256)
+        return javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded
+    }
+
+    private fun hex(b: ByteArray): String = b.joinToString("") { "%02x".format(it) }
+    private fun unhex(s: String): ByteArray = ByteArray(s.length / 2) { s.substring(it * 2, it * 2 + 2).toInt(16).toByte() }
 
     fun has(c: Context): Boolean = !prefs(c).getString("pin", null).isNullOrEmpty()
     fun length(c: Context): Int = prefs(c).getInt("pin_len", 4)
-    fun set(c: Context, pin: String) { prefs(c).edit().putString("pin", hash(pin)).putInt("pin_len", pin.length).apply() }
-    fun clear(c: Context) { prefs(c).edit().remove("pin").remove("pin_len").apply() }
-    fun check(c: Context, pin: String): Boolean = prefs(c).getString("pin", null) == hash(pin)
+
+    fun set(c: Context, pin: String) {
+        val salt = ByteArray(16)
+        java.security.SecureRandom().nextBytes(salt)
+        prefs(c).edit()
+            .putString("pin", hex(pbkdf2(pin, salt, ITERATIONS)))
+            .putString("salt", hex(salt))
+            .putInt("iter", ITERATIONS)
+            .putInt("pin_len", pin.length)
+            .putInt("fails", 0)
+            .putLong("locked_until", 0L)
+            .apply()
+    }
+
+    fun clear(c: Context) {
+        prefs(c).edit().remove("pin").remove("salt").remove("iter").remove("pin_len")
+            .remove("fails").remove("locked_until").apply()
+    }
+
+    /** Milliseconds left until another PIN try is allowed (0 = allowed now). */
+    fun lockedForMs(c: Context): Long =
+        (prefs(c).getLong("locked_until", 0L) - System.currentTimeMillis()).coerceAtLeast(0L)
+
+    fun check(c: Context, pin: String): Boolean {
+        if (lockedForMs(c) > 0L) return false
+        val p = prefs(c)
+        val stored = p.getString("pin", null) ?: return false
+        val saltHex = p.getString("salt", null)
+        val ok = if (saltHex == null) {
+            // old unsalted format: still accepted once, then upgraded
+            MessageDigest.isEqual(stored.toByteArray(), legacyHash(pin).toByteArray())
+        } else {
+            val calc = hex(pbkdf2(pin, unhex(saltHex), p.getInt("iter", ITERATIONS)))
+            MessageDigest.isEqual(stored.toByteArray(), calc.toByteArray())
+        }
+        if (ok) {
+            if (saltHex == null) set(c, pin)
+            p.edit().putInt("fails", 0).putLong("locked_until", 0L).apply()
+        } else {
+            val fails = p.getInt("fails", 0) + 1
+            val lock = if (fails >= 5) minOf(30_000L shl (fails - 5).coerceAtMost(7), 3_600_000L) else 0L
+            p.edit().putInt("fails", fails)
+                .putLong("locked_until", if (lock > 0L) System.currentTimeMillis() + lock else 0L).apply()
+        }
+        return ok
+    }
 }
 
 // ---------------------------------------------------------------------------
