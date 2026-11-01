@@ -33,6 +33,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -42,6 +43,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,7 +63,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootGraph
+import com.ramcosta.composedestinations.generated.destinations.FlashScreenDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import com.rifsxd.ksunext.ui.util.KernelUpdater
 import com.rifsxd.ksunext.Natives
 import com.rifsxd.ksunext.ui.component.XBoom
 import com.rifsxd.ksunext.ui.component.XBoomMood
@@ -104,6 +108,7 @@ fun ToolsScreen(navigator: DestinationsNavigator) {
             RootTimerSection()
             PresetsSection()
             SafeModeSection()
+            KernelUpdateSection(navigator)
         }
     }
 }
@@ -354,4 +359,119 @@ private fun SafeModeSection() {
         }
     }
     RebootDialog(showReboot) { showReboot = false }
+}
+
+@Composable
+private fun KernelUpdateSection(navigator: DestinationsNavigator) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val current = remember { KernelUpdater.currentRelease() }
+    var latest by remember { mutableStateOf<KernelUpdater.Release?>(null) }
+    var status by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    var progress by remember { mutableFloatStateOf(0f) }
+
+    fun update(rel: KernelUpdater.Release) {
+        scope.launch {
+            busy = true
+            error = null
+            progress = 0f
+            try {
+                status = "Downloading ${rel.zipName} ..."
+                val file = KernelUpdater.download(context, rel) { done, total ->
+                    progress = if (total > 0) done.toFloat() / total.toFloat() else 0f
+                }
+                status = "Verifying checksum ..."
+                val sha = KernelUpdater.sha256(file)
+                rel.sha256?.let {
+                    if (!it.equals(sha, ignoreCase = true)) {
+                        throw IllegalStateException("Checksum mismatch, the download is corrupted. Not flashing.")
+                    }
+                }
+                status = "Checking that this kernel trusts RootX ..."
+                val entry = KernelUpdater.ownSignatureEntry(context)
+                    ?: throw IllegalStateException("Could not read RootX's own signature. Not flashing.")
+                val trusted = KernelUpdater.zipTrustsManager(file, entry)
+                if (trusted == null) {
+                    throw IllegalStateException("No kernel Image found in the zip, so it cannot be verified. Not flashing.")
+                }
+                if (!trusted) {
+                    throw IllegalStateException("This kernel does NOT trust RootX's signature. Flashing it would lock RootX out of root. Not flashing.")
+                }
+                status = "Backing up the current boot.img ..."
+                val backup = KernelUpdater.backupBoot().getOrThrow()
+                status = "Backup saved: $backup"
+                navigator.navigate(FlashScreenDestination(FlashIt.FlashAnyKernel(android.net.Uri.fromFile(file))))
+            } catch (e: Exception) {
+                error = e.message ?: e.toString()
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    ToolCard("Kernel update", "Download, verify and flash a new kernel from inside RootX") {
+        Text(
+            "Running kernel: $current",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Button(
+            enabled = !busy,
+            onClick = {
+                scope.launch {
+                    busy = true
+                    error = null
+                    status = "Checking for updates ..."
+                    val r = KernelUpdater.fetchLatest()
+                    r.onSuccess {
+                        latest = it
+                        status = if (KernelUpdater.tagBuild(it.tag) > KernelUpdater.currentBuild())
+                            "Update available: ${it.tag}" else "You are on the latest kernel (${it.tag})"
+                    }
+                    r.onFailure { error = it.message ?: it.toString() }
+                    busy = false
+                }
+            }
+        ) { Text("Check for update") }
+
+        latest?.let { rel ->
+            if (rel.name.isNotBlank()) {
+                Text(rel.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            }
+            if (rel.notes.isNotBlank()) {
+                Text(rel.notes.take(500), style = MaterialTheme.typography.bodySmall)
+            }
+            if (rel.sha256 == null) {
+                Text(
+                    "This release has no published checksum, so the download cannot be verified.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+            val newer = KernelUpdater.tagBuild(rel.tag) > KernelUpdater.currentBuild()
+            if (newer) {
+                Button(enabled = !busy, onClick = { update(rel) }) { Text("Update kernel") }
+            } else {
+                OutlinedButton(enabled = !busy, onClick = { update(rel) }) { Text("Reinstall this kernel") }
+            }
+        }
+
+        if (busy && progress > 0f) {
+            LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+        }
+        if (status.isNotEmpty()) {
+            Text(status, style = MaterialTheme.typography.bodySmall)
+        }
+        error?.let {
+            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+        }
+        Text(
+            "Safety: a boot.img backup is saved to /sdcard/RootX first, and a kernel that does not trust RootX is never flashed. " +
+                "Keep your Odin stock firmware ready in case a kernel fails to boot.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }
