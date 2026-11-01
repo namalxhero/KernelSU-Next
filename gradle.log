@@ -1,0 +1,120 @@
+Starting a Gradle Daemon (subsequent builds will be faster)
+Type-safe project accessors is an incubating feature.
+
+> Configure project :app
+WARNING: The option setting 'android.enableAppCompileTimeRClass=true' is experimental.
+The current default is 'false'.
+WARNING: The option setting 'android.r8.maxWorkers=4' is experimental.
+The current default is '1'.
+w: file:///home/runner/work/KernelSU-Next/KernelSU-Next/manager/app/build.gradle.kts:48:5: 'fun BaseAppModuleExtension.kotlinOptions(configure: Action<DeprecatedKotlinJvmOptions>): Unit' is deprecated. Please migrate to the compilerOptions DSL. More details are here: https://kotl.in/u1r8ln.
+w: file:///home/runner/work/KernelSU-Next/KernelSU-Next/manager/app/build.gradle.kts:49:9: 'var jvmTarget: String' is deprecated. Please migrate to the compilerOptions DSL. More details are here: https://kotl.in/u1r8ln.
+
+> Task :app:externalNativeBuildCleanDebug
+> Task :app:externalNativeBuildCleanRelease
+> Task :app:clean UP-TO-DATE
+> Task :app:mergeScripts
+> Task :app:preBuild
+> Task :app:preReleaseBuild
+
+> Task :app:configureCMakeRelease[arm64-v8a]
+Checking the license for package CMake 3.22.1 in /usr/local/lib/android/sdk/licenses
+License for package CMake 3.22.1 accepted.
+Preparing "Install CMake 3.22.1 v.3.22.1".
+"Install CMake 3.22.1 v.3.22.1" ready.
+Installing CMake 3.22.1 in /usr/local/lib/android/sdk/cmake/3.22.1
+"Install CMake 3.22.1 v.3.22.1" complete.
+"Install CMake 3.22.1 v.3.22.1" finished.
+C/C++: CMake Warning:
+C/C++:   Manually-specified variables were not used by the project:
+C/C++:     DEBUG_SYMBOLS_PATH
+
+> Task :app:buildCMakeRelease[arm64-v8a]
+
+> Task :app:configureCMakeRelease[riscv64]
+C/C++: CMake Warning:
+C/C++:   Manually-specified variables were not used by the project:
+C/C++:     DEBUG_SYMBOLS_PATH
+
+> Task :app:buildCMakeRelease[riscv64]
+
+> Task :app:configureCMakeRelease[x86_64]
+C/C++: CMake Warning:
+C/C++:   Manually-specified variables were not used by the project:
+C/C++:     DEBUG_SYMBOLS_PATH
+
+> Task :app:buildCMakeRelease[x86_64]
+> Task :app:mergeReleaseJniLibFolders
+> Task :app:buildKotlinToolingMetadata
+> Task :app:mergeReleaseNativeLibs
+> Task :app:checkReleaseDuplicateClasses
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:generateReleaseBuildConfig
+> Task :app:generateReleaseResValues
+> Task :app:generateReleaseResources
+> Task :app:stripReleaseDebugSymbols
+> Task :app:packageReleaseResources
+> Task :app:processReleaseNavigationResources
+> Task :app:extractReleaseNativeSymbolTables
+> Task :app:compileReleaseAidl
+> Task :app:javaPreCompileRelease
+> Task :app:parseReleaseLocalResources
+> Task :app:mergeReleaseArtProfile
+> Task :app:generateReleaseRFile
+> Task :app:checkReleaseAarMetadata
+> Task :app:compileReleaseNavigationResources
+> Task :app:mapReleaseSourceSetPaths
+> Task :app:mergeReleaseNativeDebugMetadata
+> Task :app:createReleaseCompatibleScreenManifests
+> Task :app:extractDeepLinksRelease
+> Task :app:processReleaseMainManifest
+> Task :app:processReleaseManifest
+> Task :app:extractProguardFiles
+> Task :app:processReleaseManifestForPackage
+> Task :app:mergeReleaseStartupProfile
+> Task :app:mergeReleaseShaders
+> Task :app:compileReleaseShaders NO-SOURCE
+> Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:mergeReleaseResources
+> Task :app:mergeReleaseAssets
+> Task :app:compressReleaseAssets
+> Task :app:extractReleaseVersionControlInfo
+> Task :app:validateSigningRelease
+> Task :app:writeReleaseAppMetadata
+> Task :app:writeReleaseSigningConfigVersions
+warn: removing resource pcrfbu.dtgibb.xbhnwu:string/install_block_modules without required default value.
+warn: removing resource pcrfbu.dtgibb.xbhnwu:string/install_block_modules_invalid without required default value.
+warn: removing resource pcrfbu.dtgibb.xbhnwu:string/install_block_modules_list without required default value.
+warn: removing resource pcrfbu.dtgibb.xbhnwu:string/install_block_modules_summary without required default value.
+warn: removing resource pcrfbu.dtgibb.xbhnwu:string/install_block_modules_warning without required default value.
+warn: removing resource pcrfbu.dtgibb.xbhnwu:string/susfs_already_loaded without required default value.
+
+> Task :app:processReleaseResources
+> Task :app:kspReleaseKotlin
+
+> Task :app:compileReleaseKotlin FAILED
+e: file:///home/runner/work/KernelSU-Next/KernelSU-Next/manager/app/src/main/java/pcrfbu/dtgibb/xbhnwu/ui/component/RootXUi.kt:191:78 'fun Dp.toPx(): Float' cannot be called in this context with an implicit receiver. Use an explicit receiver if necessary.
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_4-1793524013454.json
+
+[Incubating] Problems report is available at: file:///home/runner/work/KernelSU-Next/KernelSU-Next/manager/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileReleaseKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.2.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 1m 3s
+48 actionable tasks: 47 executed, 1 up-to-date
